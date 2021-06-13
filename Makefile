@@ -61,9 +61,9 @@ cppcheck:
 	@test -s cppcheck.log && (echo ""; echo "Errors detected:"; echo ""; cat cppcheck.log; exit 1) || exit 0
 
 
-sanitizer:
+debug:
 	$(MAKE) clean
-	$(MAKE) OPTIM="-g -fsanitize=address" all
+	$(MAKE) OPTIM="-DDEBUG -g -fsanitize=address" all
 
 
 testttf:	ttf.o testttf.o

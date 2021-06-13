@@ -53,6 +53,11 @@ main(int  argc,				// I - Number of command-line arguments
     errors += test_font("testfiles/OpenSans-Regular.ttf");
   }
 
+  if (!errors)
+    puts("\nALL TESTS PASSED");
+  else
+    printf("\n%d TEST(S) FAILED\n", errors);
+
   return (errors);
 }
 
@@ -76,13 +81,24 @@ error_cb(void       *data,		// I - User data (not used)
 static int				// O - Number of errors
 test_font(const char *filename)		// I - Font filename
 {
-  int		errors = 0;		// Number of errors
+  int		i,			// Looping var
+		errors = 0;		// Number of errors
   ttf_t		*font;			// Font
   const char	*value;			// Font value
   ttf_rect_t	extents;		// Extents
   size_t	num_fonts;		// Number of fonts
   ttf_style_t	style;			// Font style
   ttf_weight_t	weight;			// Font weight
+  static const char * const strings[] =	// Test strings
+  {
+    "Hello, World!",			// English
+    "مرحبا بالعالم!",			// Arabic
+    "Bonjour le monde!",		// French
+    "Γειά σου Κόσμε!",			// Greek
+    "שלום עולם!",			// Hebrew
+    "Привет мир!",			// Russian
+    "こんにちは世界！"			// Japanese
+  };
   static const char * const styles[] =	// Font style names
   {
     "TTF_STYLE_NORMAL",
@@ -108,15 +124,18 @@ test_font(const char *filename)		// I - Font filename
     errors ++;
   }
 
-  fputs("ttfGetExtents: ", stdout);
-  if (ttfGetExtents(font, 12.0f, "Hello, World!", &extents))
+  for (i = 0; i < (int)(sizeof(strings) / sizeof(strings[0])); i ++)
   {
-    printf("PASS (%g %g %g %g)\n", extents.left, extents.top, extents.right, extents.bottom);
-  }
-  else
-  {
-    puts("FAIL");
-    errors ++;
+    printf("ttfGetExtents(\"%s\"): ", strings[i]);
+    if (ttfGetExtents(font, 12.0f, strings[i], &extents))
+    {
+      printf("PASS (%.1f %.1f %.1f %.1f)\n", extents.left, extents.bottom, extents.right, extents.top);
+    }
+    else
+    {
+      puts("FAIL");
+      errors ++;
+    }
   }
 
   fputs("ttfGetFamily: ", stdout);

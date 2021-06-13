@@ -302,6 +302,8 @@ ttfCreate(const char   *filename,	// I - Filename
   _ttf_off_os_2_t	os_2;		// OS/2 table
 
 
+  TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_data=%p)\n", filename, idx, err_cb, err_data);
+
   // Range check input..
   if (!filename)
   {
@@ -324,8 +326,10 @@ ttfCreate(const char   *filename,	// I - Filename
     goto error;
   }
 
+  TTF_DEBUG("ttfCreate: fd=%d\n", font->fd);
+
   // Read the table of contents and the identifying names...
-  if (read_table(font))
+  if (!read_table(font))
     goto error;
 
   TTF_DEBUG("ttfCreate: num_entries=%d\n", font->table.num_entries);
@@ -566,6 +570,17 @@ ttfGetExtents(
       }
 
       width += widths[ch & 255].width;
+    }
+    else if ((widths = font->widths[0]) != NULL)
+    {
+      // Use the ".notdef" (0) glyph width...
+      if (first)
+      {
+        extents->left = -widths[0].left_bearing / font->units;
+        first         = false;
+      }
+
+      width += widths[0].width;
     }
   }
 
