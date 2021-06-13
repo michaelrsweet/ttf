@@ -51,6 +51,7 @@ main(int  argc,				// I - Number of command-line arguments
     // Test with the bundled TrueType files...
     errors += test_font("testfiles/OpenSans-Bold.ttf");
     errors += test_font("testfiles/OpenSans-Regular.ttf");
+    errors += test_font("testfiles/NotoSansJP-Regular.otf");
   }
 
   if (!errors)
