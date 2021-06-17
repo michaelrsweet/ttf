@@ -396,10 +396,8 @@ ttfCreate(const char   *filename,	// I - Filename
   font->ascent  = hhea.ascender;
   font->descent = hhea.descender;
 
-  if ((num_glyphs = read_maxp(font)) < 0)
+  if (read_maxp(font) < 0)
     goto error;
-
-  TTF_DEBUG("ttfCreate: num_glyphs=%d\n", num_glyphs);
 
   if (hhea.numberOfHMetrics > 0)
   {
@@ -1109,18 +1107,16 @@ read_cmap(ttf_t *font,			// I - Font
           // Format 0: Byte encoding table.
           //
           // This is a simple 8-bit mapping.
-	  if ((clength = (unsigned)read_ushort(font)) == (unsigned)-1)
+	  if ((unsigned)read_ushort(font) == (unsigned)-1)
 	  {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
 	    return (-1);
 	  }
 
-	  TTF_DEBUG("read_cmap: clength=%u\n", clength);
-
           /* language = */ read_ushort(font);
 
 	  num_cmap = (int)length - 6;;
-	  cmapptr  = *cmap = (int *)malloc((size_t)num_cmap * sizeof(int));
+	  *cmap    = (int *)malloc((size_t)num_cmap * sizeof(int));
 
           read(font->fd, *cmap, num_cmap);
         }
