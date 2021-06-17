@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -187,6 +186,7 @@ struct _ttf_s
   char		*family;		// Font family string
   char		*postscript_name;	// PostScript name string
   char		*version;		// Font version string
+  bool		is_fixed;		// Is this a fixed-width font?
   _ttf_metric_t	*widths[TTF_FONT_MAX_CHAR / 256];
 					// Character metrics (sparse array)
   float		units;			// Width units
@@ -200,6 +200,7 @@ struct _ttf_s
 		y_min,
 		weight;			// Font weight
   float		italic_angle;		// Angle of italic text
+  ttf_stretch_t	stretch;		// Font stretch value
   ttf_style_t	style;			// Font style
 };
 
@@ -253,11 +254,19 @@ typedef struct _ttf_off_hhea_s		// Horizontal header
 typedef struct _ttf_off_os_2_s		// OS/2 information
 {
   unsigned short usWeightClass,		// Font weight
+		usWidthClass,		// Font weight
 		fsType;			// Type bits
   short		sTypoAscender,		// Ascender
 		sTypoDescender,		// Descender
+		sxHeight,		// xHeight
 		sCapHeight;		// CapHeight
 } _ttf_off_os_2_t;
+
+typedef struct _ttf_off_post_s		// PostScript information
+{
+  float		italicAngle;		// Italic angle
+  unsigned	isFixedPitch;		// Fixed-width font?
+} _ttf_off_post_t;
 
 
 //
@@ -273,7 +282,7 @@ static _ttf_metric_t *read_hmtx(ttf_t *font, _ttf_off_hhea_t *hhea);
 static int	read_maxp(ttf_t *font);
 static bool	read_names(ttf_t *font);
 static bool	read_os_2(ttf_t *font, _ttf_off_os_2_t *os_2);
-static float	read_post(ttf_t *font);
+static bool	read_post(ttf_t *font, _ttf_off_post_t *post);
 static int	read_short(ttf_t *font);
 static bool	read_table(ttf_t *font);
 static unsigned	read_ulong(ttf_t *font);
@@ -300,6 +309,7 @@ ttfCreate(const char   *filename,	// I - Filename
   _ttf_off_head_t	head;		// head table
   _ttf_off_hhea_t	hhea;		// hhea table
   _ttf_off_os_2_t	os_2;		// OS/2 table
+  _ttf_off_post_t	post;		// PostScript table
 
 
   TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_data=%p)\n", filename, idx, err_cb, err_data);
@@ -344,13 +354,19 @@ ttfCreate(const char   *filename,	// I - Filename
   font->family          = copy_name(font, TTF_OFF_FontFamily);
   font->postscript_name = copy_name(font, TTF_OFF_PostScriptName);
   font->version         = copy_name(font, TTF_OFF_FontVersion);
-  font->italic_angle    = read_post(font);
+
+  if (read_post(font, &post))
+  {
+    font->italic_angle = post.italicAngle;
+    font->is_fixed     = post.isFixedPitch != 0;
+  }
 
   TTF_DEBUG("ttfCreate: copyright=\"%s\"\n", font->copyright);
   TTF_DEBUG("ttfCreate: family=\"%s\"\n", font->family);
   TTF_DEBUG("ttfCreate: postscript_name=\"%s\"\n", font->postscript_name);
   TTF_DEBUG("ttfCreate: version=\"%s\"\n", font->version);
   TTF_DEBUG("ttfCreate: italic_angle=%g\n", font->italic_angle);
+  TTF_DEBUG("ttfCreate: is_fixed=%s\n", font->is_fixed ? "true" : "false");
 
   if ((num_cmap = read_cmap(font, &cmap)) <= 0)
     goto error;
@@ -399,19 +415,39 @@ ttfCreate(const char   *filename,	// I - Filename
   if (read_os_2(font, &os_2))
   {
     // Copy key values from OS/2 table...
+    static const ttf_stretch_t widths[] =
+    {
+      TTF_STRETCH_ULTRA_CONDENSED,	// ultra-condensed
+      TTF_STRETCH_EXTRA_CONDENSED,	// extra-condensed
+      TTF_STRETCH_CONDENSED,		// condensed
+      TTF_STRETCH_SEMI_CONDENSED,	// semi-condensed
+      TTF_STRETCH_NORMAL,		// normal
+      TTF_STRETCH_SEMI_EXPANDED,	// semi-expanded
+      TTF_STRETCH_EXPANDED,		// expanded
+      TTF_STRETCH_EXTRA_EXPANDED,	// extra-expanded
+      TTF_STRETCH_ULTRA_EXPANDED	// ultra-expanded
+    };
+
+    if (os_2.usWidthClass >= 1 && os_2.usWidthClass <= (int)(sizeof(widths) / sizeof(widths[0])))
+      font->stretch = widths[os_2.usWidthClass - 1];
+
     font->weight     = (short)os_2.usWeightClass;
     font->cap_height = os_2.sCapHeight;
+    font->x_height   = os_2.sxHeight;
   }
   else
   {
     // Default key values since there isn't an OS/2 table...
     TTF_DEBUG("ttfCreate: Unable to read OS/2 table.\n");
 
-    font->weight     = 400;
-    font->cap_height = font->ascent;
+    font->weight = 400;
   }
 
-  font->italic_angle = read_post(font);
+  if (font->cap_height == 0)
+    font->cap_height = font->ascent;
+
+  if (font->x_height == 0)
+    font->x_height   = 3 * font->ascent / 5;
 
   // Build a sparse glyph widths table...
   for (i = 0; i < num_cmap; i ++)
@@ -456,7 +492,7 @@ ttfCreate(const char   *filename,	// I - Filename
 //
 
 void
-ttfDelete(ttf_t *font)			// I - Font object
+ttfDelete(ttf_t *font)			// I - Font
 {
   int	i;				// Looping var
 
@@ -486,13 +522,72 @@ ttfDelete(ttf_t *font)			// I - Font object
 
 
 //
+// 'ttfGetAscent()' - Get the maximum height of non-accented characters.
+//
+
+int					// O - Ascent in 1000ths
+ttfGetAscent(ttf_t *font)		// I - Font
+{
+  return (font ? (int)(1000 * font->ascent / font->units) : 0);
+}
+
+
+//
+// 'ttfGetBounds()' - Get the bounds of all characters in a font.
+//
+
+ttf_rect_t *				// O - Bounds or `NULL` on error
+ttfGetBounds(ttf_t      *font,		// I - Font
+             ttf_rect_t *bounds)	// I - Bounds buffer
+{
+  // Range check input...
+  if (!font || !bounds)
+  {
+    if (bounds)
+      memset(bounds, 0, sizeof(ttf_rect_t));
+
+    return (NULL);
+  }
+
+  bounds->left   = 1000.0f * font->x_min / font->units;
+  bounds->right  = 1000.0f * font->x_max / font->units;
+  bounds->bottom = 1000.0f * font->y_min / font->units;
+  bounds->top    = 1000.0f * font->y_max / font->units;
+
+  return (bounds);
+}
+
+
+//
+// 'ttfGetCapHeight()' - Get the height of capital letters.
+//
+
+int					// O - Capital letter height in 1000ths
+ttfGetCapHeight(ttf_t *font)		// I - Font
+{
+  return (font ? (int)(1000 * font->cap_height / font->units) : 0);
+}
+
+
+//
 // 'ttfGetCopyright()' - Get the copyright text for a font.
 //
 
 const char *				// O - Copyright text
-ttfGetCopyright(ttf_t *font)		// I - Font object
+ttfGetCopyright(ttf_t *font)		// I - Font
 {
   return (font ? font->copyright : NULL);
+}
+
+
+//
+// 'ttfGetDescent()' - Get the maximum depth of non-accented characters.
+//
+
+int					// O - Descent in 1000ths
+ttfGetDescent(ttf_t *font)		// I - Font
+{
+  return (font ? (int)(1000 * font->descent / font->units) : 0);
 }
 
 
@@ -600,9 +695,31 @@ ttfGetExtents(
 //
 
 const char *				// O - Family name
-ttfGetFamily(ttf_t *font)		// I - Font object
+ttfGetFamily(ttf_t *font)		// I - Font
 {
   return (font ? font->family : NULL);
+}
+
+
+//
+// 'ttfIsFixedPitch()' - Determine whether a font is fixedpitch.
+//
+
+bool					// O - `true` if fixed pitch, `false` otherwise
+ttfIsFixedPitch(ttf_t *font)		// I - Font
+{
+  return (font ? font->is_fixed : false);
+}
+
+
+//
+// 'ttfGetItalicAngle()' - Get the italic angle.
+//
+
+float					// O - Angle in degrees
+ttfGetItalicAngle(ttf_t *font)		// I - Font
+{
+  return (font ? font->italic_angle : 0.0f);
 }
 
 
@@ -611,7 +728,7 @@ ttfGetFamily(ttf_t *font)		// I - Font object
 //
 
 size_t					// O - Number of fonts
-ttfGetNumFonts(ttf_t *font)		// I - Font object
+ttfGetNumFonts(ttf_t *font)		// I - Font
 {
   return (font ? font->num_fonts : 0);
 }
@@ -623,9 +740,20 @@ ttfGetNumFonts(ttf_t *font)		// I - Font object
 
 const char *				// O - PostScript name
 ttfGetPostScriptName(
-    ttf_t *font)			// I - Font object
+    ttf_t *font)			// I - Font
 {
   return (font ? font->postscript_name : NULL);
+}
+
+
+//
+// 'ttfGetStretch()' - Get the font "stretch" value...
+//
+
+ttf_stretch_t				// O - Stretch value
+ttfGetStretch(ttf_t *font)		// I - Font
+{
+  return (font ? font->stretch : TTF_STRETCH_NORMAL);
 }
 
 
@@ -634,7 +762,7 @@ ttfGetPostScriptName(
 //
 
 ttf_style_t				// O - Style
-ttfGetStyle(ttf_t *font)		// I - Font object
+ttfGetStyle(ttf_t *font)		// I - Font
 {
   return (font ? font->style : TTF_STYLE_NORMAL);
 }
@@ -645,7 +773,7 @@ ttfGetStyle(ttf_t *font)		// I - Font object
 //
 
 const char *				// O - Version number
-ttfGetVersion(ttf_t *font)		// I - Font object
+ttfGetVersion(ttf_t *font)		// I - Font
 {
   return (font ? font->version : NULL);
 }
@@ -656,9 +784,43 @@ ttfGetVersion(ttf_t *font)		// I - Font object
 //
 
 ttf_weight_t				// O - Weight
-ttfGetWeight(ttf_t *font)		// I - Font object
+ttfGetWeight(ttf_t *font)		// I - Font
 {
   return (font ? (ttf_weight_t)font->weight : TTF_WEIGHT_400);
+}
+
+
+//
+// 'ttfGetWidth()' - Get the width of a single character.
+//
+
+int					// O - Width in 1000ths
+ttfGetWidth(ttf_t *font,		// I - Font
+            int   ch)			// I - Unicode character
+{
+  int	bin = ch >> 8;			// Bin in widths array
+
+
+  // Range check input...
+  if (!font || ch < ' ' || ch == 0x7f)
+    return (0);
+  else if (font->widths[bin])
+    return (1000 * font->widths[bin][ch & 255].width / font->units);
+  else if (font->widths[0])		// .notdef
+    return (1000 * font->widths[0][0].width / font->units);
+  else
+    return (0);
+}
+
+
+//
+// 'ttfGetXHeight()' - Get the height of lowercase letters.
+//
+
+int					// O - Lowercase letter height in 1000ths
+ttfGetXHeight(ttf_t *font)		// I - Font
+{
+  return (font ? (int)(1000 * font->x_height / font->units) : 0);
 }
 
 
@@ -1434,7 +1596,7 @@ read_os_2(ttf_t           *font,	// I - Font
 
   /* xAvgCharWidth */       read_short(font);
   os_2->usWeightClass     = (unsigned short)read_ushort(font);
-  /* usWidthClass */        read_ushort(font);
+  os_2->usWidthClass      = (unsigned short)read_ushort(font);
   os_2->fsType            = (unsigned short)read_ushort(font);
   /* ySubscriptXSize */     read_short(font);
   /* ySubscriptYSize */     read_short(font);
@@ -1467,7 +1629,7 @@ read_os_2(ttf_t           *font,	// I - Font
   {
     /* ulCodePageRange1 */  read_ulong(font);
     /* ulCodePageRange2 */  read_ulong(font);
-    /* sxHeight */          read_short(font);
+    os_2->sxHeight        = read_short(font);
     os_2->sCapHeight      = (short)read_short(font);
   }
 
@@ -1476,18 +1638,25 @@ read_os_2(ttf_t           *font,	// I - Font
 
 
 //
-// 'read_post()' - Read the italicAngle value from the post table.
+// 'read_post()' - Read the PostScript table.
 //
 
-static float				// O - italicAngle value or 0.0
-read_post(ttf_t *font)			// I - Font
+static bool				// O - `true` on success, `false` otherwise
+read_post(ttf_t           *font,	// I - Font
+          _ttf_off_post_t *post)	// I - PostScript table
 {
+  memset(post, 0, sizeof(_ttf_off_post_t));
+
   if (seek_table(font, TTF_OFF_post, 0, false) == 0)
-    return (0.0f);
+    return (false);
 
-  /* version = */read_ulong(font);
+  /* version            = */read_ulong(font);
+  post->italicAngle     = (int)read_ulong(font) / 65536.0f;
+  /* underlinePosition  = */read_ushort(font);
+  /* underlineThickness = */read_ushort(font);
+  post->isFixedPitch    = read_ulong(font);
 
-  return ((int)read_ulong(font) / 65536.0f);
+  return (true);
 }
 
 

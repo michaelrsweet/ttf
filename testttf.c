@@ -85,11 +85,26 @@ test_font(const char *filename)		// I - Font filename
   int		i,			// Looping var
 		errors = 0;		// Number of errors
   ttf_t		*font;			// Font
-  const char	*value;			// Font value
+  const char	*value;			// Font (string) value
+  int		intvalue;		// Font (integer) value
+  float		realvalue;		// Font (real) value
+  ttf_rect_t	bounds;			// Bounds
   ttf_rect_t	extents;		// Extents
   size_t	num_fonts;		// Number of fonts
   ttf_style_t	style;			// Font style
   ttf_weight_t	weight;			// Font weight
+  static const char * const stretches[] =
+  {					// Font stretch strings
+    "TTF_STRETCH_NORMAL",		// normal
+    "TTF_STRETCH_ULTRA_CONDENSED",	// ultra-condensed
+    "TTF_STRETCH_EXTRA_CONDENSED",	// extra-condensed
+    "TTF_STRETCH_CONDENSED",		// condensed
+    "TTF_STRETCH_SEMI_CONDENSED",	// semi-condensed
+    "TTF_STRETCH_SEMI_EXPANDED",	// semi-expanded
+    "TTF_STRETCH_EXPANDED",		// expanded
+    "TTF_STRETCH_EXTRA_EXPANDED",	// extra-expanded
+    "TTF_STRETCH_ULTRA_EXPANDED"	// ultra-expanded
+  };
   static const char * const strings[] =	// Test strings
   {
     "Hello, World!",			// English
@@ -113,6 +128,39 @@ test_font(const char *filename)		// I - Font filename
     puts("PASS");
   else
     errors ++;
+
+  fputs("ttfGetAscent: ", stdout);
+  if ((intvalue = ttfGetAscent(font)) > 0)
+  {
+    printf("PASS (%d)\n", intvalue);
+  }
+  else
+  {
+    printf("FAIL (%d)\n", intvalue);
+    errors ++;
+  }
+
+  fputs("ttfGetBounds: ", stdout);
+  if (ttfGetBounds(font, &bounds))
+  {
+    printf("PASS (%g %g %g %g)\n", bounds.left, bounds.bottom, bounds.right, bounds.top);
+  }
+  else
+  {
+    puts("FAIL");
+    errors ++;
+  }
+
+  fputs("ttfGetCapHeight: ", stdout);
+  if ((intvalue = ttfGetCapHeight(font)) > 0)
+  {
+    printf("PASS (%d)\n", intvalue);
+  }
+  else
+  {
+    printf("FAIL (%d)\n", intvalue);
+    errors ++;
+  }
 
   fputs("ttfGetCopyright: ", stdout);
   if ((value = ttfGetCopyright(font)) != NULL)
@@ -150,6 +198,17 @@ test_font(const char *filename)		// I - Font filename
     errors ++;
   }
 
+  fputs("ttfGetItalicAngle: ", stdout);
+  if ((realvalue = ttfGetItalicAngle(font)) >= 0.0)
+  {
+    printf("PASS (%g)\n", realvalue);
+  }
+  else
+  {
+    printf("FAIL (%g)\n", realvalue);
+    errors ++;
+  }
+
   fputs("ttfGetNumFonts: ", stdout);
   if ((num_fonts = ttfGetNumFonts(font)) > 0)
   {
@@ -169,6 +228,17 @@ test_font(const char *filename)		// I - Font filename
   else
   {
     puts("FAIL");
+    errors ++;
+  }
+
+  fputs("ttfGetStretch: ", stdout);
+  if ((intvalue = (int)ttfGetStretch(font)) >= TTF_STRETCH_NORMAL && intvalue <= TTF_STRETCH_ULTRA_EXPANDED)
+  {
+    printf("PASS (%s)\n", stretches[intvalue]);
+  }
+  else
+  {
+    printf("FAIL (%d)\n", intvalue);
     errors ++;
   }
 
@@ -204,6 +274,34 @@ test_font(const char *filename)		// I - Font filename
     puts("FAIL");
     errors ++;
   }
+
+  fputs("ttfGetWidth(' '): ", stdout);
+  if ((intvalue = ttfGetWidth(font, ' ')) > 0)
+  {
+    printf("PASS (%d)\n", intvalue);
+  }
+  else
+  {
+    printf("FAIL (%d)\n", intvalue);
+    errors ++;
+  }
+
+  fputs("ttfGetXHeight: ", stdout);
+  if ((intvalue = ttfGetXHeight(font)) > 0)
+  {
+    printf("PASS (%d)\n", intvalue);
+  }
+  else
+  {
+    printf("FAIL (%d)\n", intvalue);
+    errors ++;
+  }
+
+  fputs("ttfIsFixedPitch: ", stdout);
+  if (ttfIsFixedPitch(font))
+    puts("PASS (true)");
+  else
+    puts("PASS (false)");
 
   ttfDelete(font);
 
