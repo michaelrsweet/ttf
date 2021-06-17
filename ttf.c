@@ -303,8 +303,7 @@ ttfCreate(const char   *filename,	// I - Filename
   ttf_t			*font = NULL;	// New font object
   int			i,		// Looping var
 			num_cmap,	// Number of Unicode character to glyph mappings
-			*cmap = NULL,	// Unicode character to glyph mappings
-			num_glyphs;	// Numnber of glyphs
+			*cmap = NULL;	// Unicode character to glyph mappings
   _ttf_metric_t		*widths = NULL;	// Glyph metrics
   _ttf_off_head_t	head;		// head table
   _ttf_off_hhea_t	hhea;		// hhea table
@@ -1118,7 +1117,11 @@ read_cmap(ttf_t *font,			// I - Font
 	  num_cmap = (int)length - 6;;
 	  *cmap    = (int *)malloc((size_t)num_cmap * sizeof(int));
 
-          read(font->fd, *cmap, num_cmap);
+          if (read(font->fd, *cmap, num_cmap) != (ssize_t)num_cmap)
+          {
+	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    return (-1);
+          }
         }
         break;
 
@@ -1605,7 +1608,7 @@ read_os_2(ttf_t           *font,	// I - Font
   /* yStrikeoutSize */      read_short(font);
   /* yStrikeoutOffset */    read_short(font);
   /* sFamilyClass */        read_short(font);
-  /* panose[10] */          read(font->fd, panose, sizeof(panose));
+  /* panose[10] */          (void)read(font->fd, panose, sizeof(panose));
   /* ulUnicodeRange1 */     read_ulong(font);
   /* ulUnicodeRange2 */     read_ulong(font);
   /* ulUnicodeRange3 */     read_ulong(font);
