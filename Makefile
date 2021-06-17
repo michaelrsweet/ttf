@@ -64,7 +64,7 @@ clang:
 
 # Scan the code using Cppcheck <http://cppcheck.sourceforge.net>
 cppcheck:
-	cppcheck --template=gcc --addon=cert.py --suppress=cert-MSC24-C --suppress=cert-EXP05-C --suppress=cert-API01-C $(OBJS:.o=.c) 2>cppcheck.log
+	cppcheck --template=gcc --addon=cert.py --suppress=cert-MSC24-C --suppress=cert-INT31-c --suppress=cert-EXP05-C --suppress=cert-API01-C $(OBJS:.o=.c) 2>cppcheck.log
 	@test -s cppcheck.log && (echo "$(GHA_ERROR)Cppcheck detected issues."; echo ""; cat cppcheck.log; exit 1) || exit 0
 
 
