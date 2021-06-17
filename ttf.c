@@ -1608,7 +1608,9 @@ read_os_2(ttf_t           *font,	// I - Font
   /* yStrikeoutSize */      read_short(font);
   /* yStrikeoutOffset */    read_short(font);
   /* sFamilyClass */        read_short(font);
-  /* panose[10] */          (void)read(font->fd, panose, sizeof(panose));
+  /* panose[10] */
+  if (read(font->fd, panose, sizeof(panose)) != (ssize_t)sizeof(panose))
+    return (false);
   /* ulUnicodeRange1 */     read_ulong(font);
   /* ulUnicodeRange2 */     read_ulong(font);
   /* ulUnicodeRange3 */     read_ulong(font);
