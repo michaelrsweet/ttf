@@ -61,10 +61,6 @@ typedef enum ttf_variant_e	//// Font variant
 
 typedef enum ttf_weight_e	//// Font weight
 {
-  TTF_WEIGHT_NORMAL,		// Normal weight, nominally 400
-  TTF_WEIGHT_BOLD,		// Bold weight, nominally 700
-  TTF_WEIGHT_BOLDER,		// Bolder
-  TTF_WEIGHT_LIGHTER,		// Lighter
   TTF_WEIGHT_100 = 100,		// Weight 100 (Thin)
   TTF_WEIGHT_200 = 200,		// Weight 200 (Extra/Ultra-Light)
   TTF_WEIGHT_300 = 300,		// Weight 300 (Light)
@@ -95,6 +91,7 @@ extern int		ttfGetAscent(ttf_t *font);
 extern ttf_rect_t	*ttfGetBounds(ttf_t *font, ttf_rect_t *bounds);
 extern int		ttfGetCapHeight(ttf_t *font);
 extern const char	*ttfGetCopyright(ttf_t *font);
+extern int		ttfGetDescent(ttf_t *font);
 extern ttf_rect_t	*ttfGetExtents(ttf_t *font, float size, const char *s, ttf_rect_t *extents);
 extern const char	*ttfGetFamily(ttf_t *font);
 extern float		ttfGetItalicAngle(ttf_t *font);
