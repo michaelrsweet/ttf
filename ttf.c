@@ -187,6 +187,8 @@ struct _ttf_s
   char		*postscript_name;	// PostScript name string
   char		*version;		// Font version string
   bool		is_fixed;		// Is this a fixed-width font?
+  int		max_char,		// Last character in font
+		min_char;		// First character in font
   _ttf_metric_t	*widths[TTF_FONT_MAX_CHAR / 256];
 					// Character metrics (sparse array)
   float		units;			// Width units
@@ -311,7 +313,7 @@ ttfCreate(const char   *filename,	// I - Filename
   _ttf_off_post_t	post;		// PostScript table
 
 
-  TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_data=%p)\n", filename, idx, err_cb, err_data);
+  TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_data=%p)\n", filename, (unsigned)idx, err_cb, err_data);
 
   // Range check input..
   if (!filename)
@@ -447,12 +449,20 @@ ttfCreate(const char   *filename,	// I - Filename
     font->x_height   = 3 * font->ascent / 5;
 
   // Build a sparse glyph widths table...
+  font->min_char = -1;
+
   for (i = 0; i < num_cmap; i ++)
   {
     if (cmap[i] >= 0)
     {
       int	bin = i / 256,		// Sub-array bin
 		glyph = cmap[i];	// Glyph index
+
+      // Update min/max...
+      if (font->min_char < 0)
+        font->min_char = i;
+
+      font->max_char = i;
 
       // Allocate a sub-array as needed...
       if (!font->widths[bin])
@@ -721,6 +731,28 @@ ttfGetItalicAngle(ttf_t *font)		// I - Font
 
 
 //
+// 'ttfGetMaxChar()' - Get the last character in the font.
+//
+
+int					// O - Last character in font
+ttfGetMaxChar(ttf_t *font)		// I - Font
+{
+  return (font ? font->max_char : 0);
+}
+
+
+//
+// 'ttfGetMinChar()' - Get the first character in the font.
+//
+
+int					// O - First character in font
+ttfGetMinChar(ttf_t *font)		// I - Font
+{
+  return (font ? font->min_char : 0);
+}
+
+
+//
 // 'ttfGetNumFonts()' - Get the number of fonts in this collection.
 //
 
@@ -802,9 +834,9 @@ ttfGetWidth(ttf_t *font,		// I - Font
   if (!font || ch < ' ' || ch == 0x7f)
     return (0);
   else if (font->widths[bin])
-    return (1000 * font->widths[bin][ch & 255].width / font->units);
+    return ((int)(1000.0f * font->widths[bin][ch & 255].width / font->units));
   else if (font->widths[0])		// .notdef
-    return (1000 * font->widths[0][0].width / font->units);
+    return ((int)(1000.0f * font->widths[0][0].width / font->units));
   else
     return (0);
 }
@@ -1117,7 +1149,7 @@ read_cmap(ttf_t *font,			// I - Font
 	  num_cmap = (int)length - 6;;
 	  *cmap    = (int *)malloc((size_t)num_cmap * sizeof(int));
 
-          if (read(font->fd, *cmap, num_cmap) != (ssize_t)num_cmap)
+          if (read(font->fd, *cmap, (size_t)num_cmap) != (ssize_t)num_cmap)
           {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
 	    return (-1);
@@ -1215,7 +1247,7 @@ read_cmap(ttf_t *font,			// I - Font
               {
                 // Use an "obscure indexing trick" (words from the spec, not
                 // mine) to look up the glyph index...
-                int temp = segment->idRangeOffset / 2 + ch - segment->startCode + seg - segCount - 1;
+                temp = segment->idRangeOffset / 2 + ch - segment->startCode + seg - segCount - 1;
 
                 if (temp < 0 || temp >= numGlyphIdArray || !glyphIdArray[temp])
                   glyph = -1;
@@ -1558,7 +1590,7 @@ read_names(ttf_t *font)			// I - Font
     }
   }
 
-  length -= offset;
+  length -= (unsigned)offset;
 
   if (read(font->fd, font->names.storage, length) < 0)
   {
@@ -1630,7 +1662,7 @@ read_os_2(ttf_t           *font,	// I - Font
   {
     /* ulCodePageRange1 */  read_ulong(font);
     /* ulCodePageRange2 */  read_ulong(font);
-    os_2->sxHeight        = read_short(font);
+    os_2->sxHeight        = (short)read_short(font);
     os_2->sCapHeight      = (short)read_short(font);
   }
 
