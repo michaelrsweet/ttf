@@ -9,9 +9,9 @@
 // information.
 //
 
-//
-// Include necessary headers...
-//
+#ifdef _WIN32
+#  define _CRT_SECURE_NO_WARNINGS
+#endif // _WIN32
 
 #include "ttf.h"
 #include <errno.h>
@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <fcntl.h>
 
 #ifdef _WIN32
 #  include <io.h>
@@ -61,9 +62,10 @@
 #  define O_CREAT	_O_CREAT
 #  define O_TRUNC	_O_TRUNC
 
+typedef __int64 ssize_t;		// POSIX type not present on Windows...
+
 #else
 #  include <unistd.h>
-#  include <fcntl.h>
 #  define O_BINARY	0
 #endif // _WIN32
 
@@ -189,6 +191,8 @@ struct _ttf_s
   bool		is_fixed;		// Is this a fixed-width font?
   int		max_char,		// Last character in font
 		min_char;		// First character in font
+  size_t	num_cmap;		// Number of entries in glyph map
+  int		*cmap;			// Unicode character to glyph map
   _ttf_metric_t	*widths[TTF_FONT_MAX_CHAR / 256];
 					// Character metrics (sparse array)
   float		units;			// Width units
@@ -277,7 +281,7 @@ typedef struct _ttf_off_post_s		// PostScript information
 
 static char	*copy_name(ttf_t *font, unsigned name_id);
 static void	errorf(ttf_t *font, const char *message, ...) TTF_FORMAT_ARGS(2,3);
-static int	read_cmap(ttf_t *font, int **cmap);
+static bool	read_cmap(ttf_t *font);
 static bool	read_head(ttf_t *font, _ttf_off_head_t *head);
 static bool	read_hhea(ttf_t *font, _ttf_off_hhea_t *hhea);
 static _ttf_metric_t *read_hmtx(ttf_t *font, _ttf_off_hhea_t *hhea);
@@ -303,9 +307,7 @@ ttfCreate(const char   *filename,	// I - Filename
           void         *err_data)	// I - Error callback data
 {
   ttf_t			*font = NULL;	// New font object
-  int			i,		// Looping var
-			num_cmap,	// Number of Unicode character to glyph mappings
-			*cmap = NULL;	// Unicode character to glyph mappings
+  size_t		i;		// Looping var
   _ttf_metric_t		*widths = NULL;	// Glyph metrics
   _ttf_off_head_t	head;		// head table
   _ttf_off_hhea_t	hhea;		// hhea table
@@ -369,7 +371,7 @@ ttfCreate(const char   *filename,	// I - Filename
   TTF_DEBUG("ttfCreate: italic_angle=%g\n", font->italic_angle);
   TTF_DEBUG("ttfCreate: is_fixed=%s\n", font->is_fixed ? "true" : "false");
 
-  if ((num_cmap = read_cmap(font, &cmap)) <= 0)
+  if (!read_cmap(font))
     goto error;
 
   if (!read_head(font, &head))
@@ -414,7 +416,7 @@ ttfCreate(const char   *filename,	// I - Filename
   if (read_os_2(font, &os_2))
   {
     // Copy key values from OS/2 table...
-    static const ttf_stretch_t widths[] =
+    static const ttf_stretch_t stretches[] =
     {
       TTF_STRETCH_ULTRA_CONDENSED,	// ultra-condensed
       TTF_STRETCH_EXTRA_CONDENSED,	// extra-condensed
@@ -427,8 +429,8 @@ ttfCreate(const char   *filename,	// I - Filename
       TTF_STRETCH_ULTRA_EXPANDED	// ultra-expanded
     };
 
-    if (os_2.usWidthClass >= 1 && os_2.usWidthClass <= (int)(sizeof(widths) / sizeof(widths[0])))
-      font->stretch = widths[os_2.usWidthClass - 1];
+    if (os_2.usWidthClass >= 1 && os_2.usWidthClass <= (int)(sizeof(stretches) / sizeof(stretches[0])))
+      font->stretch = stretches[os_2.usWidthClass - 1];
 
     font->weight     = (short)os_2.usWeightClass;
     font->cap_height = os_2.sCapHeight;
@@ -451,18 +453,18 @@ ttfCreate(const char   *filename,	// I - Filename
   // Build a sparse glyph widths table...
   font->min_char = -1;
 
-  for (i = 0; i < num_cmap; i ++)
+  for (i = 0; i < font->num_cmap; i ++)
   {
-    if (cmap[i] >= 0)
+    if (font->cmap[i] >= 0)
     {
-      int	bin = i / 256,		// Sub-array bin
-		glyph = cmap[i];	// Glyph index
+      int	bin = (int)i / 256,	// Sub-array bin
+		glyph = font->cmap[i];	// Glyph index
 
       // Update min/max...
       if (font->min_char < 0)
-        font->min_char = i;
+        font->min_char = (int)i;
 
-      font->max_char = i;
+      font->max_char = (int)i;
 
       // Allocate a sub-array as needed...
       if (!font->widths[bin])
@@ -478,7 +480,6 @@ ttfCreate(const char   *filename,	// I - Filename
   }
 
   // Cleanup and return the font...
-  free(cmap);
   free(widths);
 
   return (font);
@@ -486,7 +487,6 @@ ttfCreate(const char   *filename,	// I - Filename
   // If we get here something bad happened...
   error:
 
-  free(cmap);
   free(widths);
   ttfDelete(font);
 
@@ -509,7 +509,8 @@ ttfDelete(ttf_t *font)			// I - Font
     return;
 
   // Close the font file...
-  close(font->fd);
+  if (font->fd >= 0)
+    close(font->fd);
 
   // Free all memory used...
   free(font->copyright);
@@ -520,6 +521,8 @@ ttfDelete(ttf_t *font)			// I - Font
   free(font->table.entries);
   free(font->names.names);
   free(font->names.storage);
+
+  free(font->cmap);
 
   for (i = 0; i < 256; i ++)
     free(font->widths[i]);
@@ -573,6 +576,28 @@ int					// O - Capital letter height in 1000ths
 ttfGetCapHeight(ttf_t *font)		// I - Font
 {
   return (font ? (int)(1000 * font->cap_height / font->units) : 0);
+}
+
+
+//
+// 'ttfGetCMap()' - Get the Unicode to glyph mapping table.
+//
+
+const int *				// O - CMap table
+ttfGetCMap(ttf_t  *font,		// I - Font
+           size_t *num_cmap)		// O - Number of entries in table
+{
+  // Range check input...
+  if (!font || !num_cmap)
+  {
+    if (num_cmap)
+      *num_cmap = 0;
+
+    return (NULL);
+  }
+
+  *num_cmap = font->num_cmap;
+  return (font->cmap);
 }
 
 
@@ -880,7 +905,7 @@ copy_name(ttf_t    *font,		// I - Font
       int	chars,		// Length of string to copy in characters
 		bpc;		// Bytes per character
 
-      if ((name->offset + name->length) > font->names.storage_size)
+      if ((unsigned)(name->offset + name->length) > font->names.storage_size)
       {
         TTF_DEBUG("copy_name: offset(%d)+length(%d) > storage_size(%d)\n", name->offset, name->length, font->names.storage_size);
         continue;
@@ -1016,15 +1041,13 @@ errorf(ttf_t      *font,		// I - Font
  * 'read_cmap()' - Read the cmap table, getting the Unicode mapping table.
  */
 
-static int				// O - Number of cmap entries or -1 on error
-read_cmap(ttf_t *font,			// I - Font
-          int   **cmap)			// O - cmap entries
+static bool				// O - `true` on success, `false` on error
+read_cmap(ttf_t *font)			// I - Font
 {
   unsigned	length;			// Length of cmap table
   int		i,			// Looping var
 		temp,			// Temporary value
 		num_tables,		// Number of cmap tables
-		num_cmap = 0,		// Number of cmap entries
 		platform_id,		// Platform identifier (Windows or Mac)
 		encoding_id,		// Encoding identifier (varies)
 		cformat;		// Formap of cmap data
@@ -1072,23 +1095,20 @@ read_cmap(ttf_t *font,			// I - Font
 #endif /* 0 */
 
 
-  // Clear character map...
-  *cmap = NULL;
-
   // Find the cmap table...
   if (seek_table(font, TTF_OFF_cmap, 0, true) == 0)
-    return (-1);
+    return (false);
 
   if ((temp = read_ushort(font)) != 0)
   {
     errorf(font, "Unknown cmap version %d.", temp);
-    return (-1);
+    return (false);
   }
 
   if ((num_tables = read_ushort(font)) < 1)
   {
     errorf(font, "No cmap tables to read.");
-    return (-1);
+    return (false);
   }
 
   TTF_DEBUG("read_cmap: num_tables=%d\n", num_tables);
@@ -1119,17 +1139,17 @@ read_cmap(ttf_t *font,			// I - Font
     else
     {
       errorf(font, "No usable cmap table.");
-      return (-1);
+      return (false);
     }
   }
 
   if ((length = seek_table(font, TTF_OFF_cmap, coffset, true)) == 0)
-    return (-1);
+    return (false);
 
   if ((cformat = read_ushort(font)) < 0)
   {
     errorf(font, "Unable to read cmap table format at offset %u.", coffset);
-    return (-1);
+    return (false);
   }
 
   TTF_DEBUG("read_cmap: cformat=%d\n", cformat);
@@ -1141,22 +1161,40 @@ read_cmap(ttf_t *font,			// I - Font
           // Format 0: Byte encoding table.
           //
           // This is a simple 8-bit mapping.
+          size_t	j;		// Looping var
+          unsigned char bmap[256];	// Byte map buffer
+
 	  if ((unsigned)read_ushort(font) == (unsigned)-1)
 	  {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
-	    return (-1);
+	    return (false);
 	  }
 
           /* language = */ read_ushort(font);
 
-	  num_cmap = (int)length - 6;;
-	  *cmap    = (int *)malloc((size_t)num_cmap * sizeof(int));
+          if (length > (256 + 6))
+          {
+	    errorf(font, "Bad cmap table length at offset %u.", coffset);
+	    return (false);
+          }
 
-          if (read(font->fd, *cmap, (size_t)num_cmap) != (ssize_t)num_cmap)
+	  font->num_cmap = length - 6;
+
+	  if ((font->cmap = (int *)malloc(font->num_cmap * sizeof(int))) == NULL)
+	  {
+	    errorf(font, "Unable to allocate cmap table.");
+	    return (false);
+	  }
+
+          if (read(font->fd, bmap, font->num_cmap) != (ssize_t)font->num_cmap)
           {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
-	    return (-1);
+	    return (false);
           }
+
+	  // Copy into the actual cmap table...
+	  for (j = 0; j < font->num_cmap; j ++)
+	    font->cmap[j] = bmap[j];
         }
         break;
 
@@ -1181,7 +1219,7 @@ read_cmap(ttf_t *font,			// I - Font
 	  if ((clength = (unsigned)read_ushort(font)) == (unsigned)-1)
 	  {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
-	    return (-1);
+	    return (false);
 	  }
 
 	  TTF_DEBUG("read_cmap: clength=%u\n", clength);
@@ -1197,12 +1235,20 @@ read_cmap(ttf_t *font,			// I - Font
           if (segCount < 2)
           {
 	    errorf(font, "Bad cmap table.");
-	    return (-1);
+	    return (false);
           }
 
           numGlyphIdArray = ((int)clength - 8 * segCount - 16) / 2;
           segments        = (_ttf_off_cmap4_t *)calloc((size_t)segCount, sizeof(_ttf_off_cmap4_t));
           glyphIdArray    = (int *)calloc((size_t)numGlyphIdArray, sizeof(int));
+
+          if (!segments || !glyphIdArray)
+          {
+            errorf(font, "Unable to allocate memory for cmap.");
+            free(segments);
+            free(glyphIdArray);
+            return (false);
+	  }
 
           TTF_DEBUG("read_cmap: numGlyphIdArray=%d\n", numGlyphIdArray);
 
@@ -1235,10 +1281,18 @@ read_cmap(ttf_t *font,			// I - Font
           // uncompressed cmap table...
           segCount --;			// Last segment is not used (sigh)
 
-	  num_cmap = segments[segCount - 1].endCode + 1;
-	  cmapptr  = *cmap = (int *)malloc((size_t)num_cmap * sizeof(int));
+	  font->num_cmap = segments[segCount - 1].endCode + 1;
+	  font->cmap     = cmapptr = (int *)malloc(font->num_cmap * sizeof(int));
 
-          memset(cmapptr, -1, (size_t)num_cmap * sizeof(int));
+	  if (!font->cmap)
+          {
+            errorf(font, "Unable to allocate memory for cmap.");
+            free(segments);
+            free(glyphIdArray);
+            return (false);
+	  }
+
+          memset(cmapptr, -1, font->num_cmap * sizeof(int));
 
           // Now loop through the segments and assign glyph indices from the
           // array...
@@ -1290,7 +1344,7 @@ read_cmap(ttf_t *font,			// I - Font
 	  if (read_ulong(font) == 0)
 	  {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
-	    return (-1);
+	    return (false);
 	  }
 
 	  /* language = */ read_ulong(font);
@@ -1298,25 +1352,36 @@ read_cmap(ttf_t *font,			// I - Font
 
 	  TTF_DEBUG("read_cmap: nGroups=%u\n", nGroups);
 
-	  groups = (_ttf_off_cmap12_t *)calloc(nGroups, sizeof(_ttf_off_cmap12_t));
+	  if ((groups = (_ttf_off_cmap12_t *)calloc(nGroups, sizeof(_ttf_off_cmap12_t))) == NULL)
+          {
+            errorf(font, "Unable to allocate memory for cmap.");
+            return (false);
+	  }
 
-	  for (gidx = 0, group = groups, num_cmap = 0; gidx < nGroups; gidx ++, group ++)
+	  for (gidx = 0, group = groups, font->num_cmap = 0; gidx < nGroups; gidx ++, group ++)
 	  {
 	    group->startCharCode = read_ulong(font);
 	    group->endCharCode   = read_ulong(font);
 	    group->startGlyphID  = read_ulong(font);
 	    TTF_DEBUG("read_cmap: [%u] startCharCode=%u, endCharCode=%u, startGlyphID=%u\n", gidx, group->startCharCode, group->endCharCode, group->startGlyphID);
 
-            if (group->endCharCode >= (unsigned)num_cmap)
-              num_cmap = (int)group->endCharCode + 1;
+            if (group->endCharCode >= font->num_cmap)
+              font->num_cmap = group->endCharCode + 1;
 	  }
 
 	  // Based on the end code of the segent table, allocate space for the
 	  // uncompressed cmap table...
-          TTF_DEBUG("read_cmap: num_cmap=%u\n", (unsigned)num_cmap);
-	  cmapptr = *cmap = (int *)malloc((size_t)num_cmap * sizeof(int));
+          TTF_DEBUG("read_cmap: num_cmap=%u\n", (unsigned)font->num_cmap);
+	  font->cmap = cmapptr = (int *)malloc(font->num_cmap * sizeof(int));
 
-	  memset(cmapptr, -1, (size_t)num_cmap * sizeof(int));
+	  if (!font->cmap)
+          {
+            errorf(font, "Unable to allocate memory for cmap.");
+            free(groups);
+            return (false);
+	  }
+
+	  memset(cmapptr, -1, font->num_cmap * sizeof(int));
 
 	  // Now loop through the groups and assign glyph indices from the
 	  // array...
@@ -1349,7 +1414,7 @@ read_cmap(ttf_t *font,			// I - Font
 	  if (read_ulong(font) == 0)
 	  {
 	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
-	    return (-1);
+	    return (false);
 	  }
 
 	  /* language = */ read_ulong(font);
@@ -1357,25 +1422,36 @@ read_cmap(ttf_t *font,			// I - Font
 
 	  TTF_DEBUG("read_cmap: nGroups=%u\n", nGroups);
 
-	  groups = (_ttf_off_cmap13_t *)calloc(nGroups, sizeof(_ttf_off_cmap13_t));
+	  if ((groups = (_ttf_off_cmap13_t *)calloc(nGroups, sizeof(_ttf_off_cmap13_t))) == NULL)
+	  {
+	    errorf(font, "Unable to allocate memory for cmap.");
+	    return (false);
+	  }
 
-	  for (gidx = 0, group = groups, num_cmap = 0; gidx < nGroups; gidx ++, group ++)
+	  for (gidx = 0, group = groups, font->num_cmap = 0; gidx < nGroups; gidx ++, group ++)
 	  {
 	    group->startCharCode = read_ulong(font);
 	    group->endCharCode   = read_ulong(font);
 	    group->glyphID       = read_ulong(font);
 	    TTF_DEBUG("read_cmap: [%u] startCharCode=%u, endCharCode=%u, glyphID=%u\n", gidx, group->startCharCode, group->endCharCode, group->glyphID);
 
-            if (group->endCharCode >= (unsigned)num_cmap)
-              num_cmap = (int)group->endCharCode + 1;
+            if (group->endCharCode >= font->num_cmap)
+              font->num_cmap = group->endCharCode + 1;
 	  }
 
 	  // Based on the end code of the segent table, allocate space for the
 	  // uncompressed cmap table...
-          TTF_DEBUG("read_cmap: num_cmap=%u\n", (unsigned)num_cmap);
-	  cmapptr = *cmap = (int *)malloc((size_t)num_cmap * sizeof(int));
+          TTF_DEBUG("read_cmap: num_cmap=%u\n", (unsigned)font->num_cmap);
+	  font->cmap = cmapptr = (int *)malloc(font->num_cmap * sizeof(int));
 
-	  memset(cmapptr, -1, (size_t)num_cmap * sizeof(int));
+	  if (!font->cmap)
+	  {
+	    errorf(font, "Unable to allocate cmap.");
+	    free(groups);
+	    return (false);
+	  }
+
+	  memset(cmapptr, -1, font->num_cmap * sizeof(int));
 
 	  // Now loop through the groups and assign glyph indices from the
 	  // array...
@@ -1392,19 +1468,19 @@ read_cmap(ttf_t *font,			// I - Font
 
     default :
         errorf(font, "Format %d cmap tables are not yet supported.", cformat);
-        return (-1);
+        return (false);
   }
 
 #ifdef DEBUG
-  cmapptr = *cmap;
-  for (i = 0; i < num_cmap && i < 127; i ++)
+  cmapptr = font->cmap;
+  for (i = 0; i < (int)font->num_cmap && i < 127; i ++)
   {
     if (cmapptr[i] >= 0)
       TTF_DEBUG("read_cmap; cmap[%d]=%d\n", i, cmapptr[i]);
   }
 #endif // DEBUG
 
-  return (num_cmap);
+  return (true);
 }
 
 
