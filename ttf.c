@@ -71,7 +71,7 @@ typedef __int64 ssize_t;		// POSIX type not present on Windows...
 
 
 //
-// DEBUG is typically defined for debug builds.  TTF_DEBUG maps to printf when
+// DEBUG is typically defined for debug builds.  TTF_DEBUG maps to fprintf when
 // DEBUG is defined and is a no-op otherwise...
 //
 
@@ -448,7 +448,7 @@ ttfCreate(const char   *filename,	// I - Filename
     font->cap_height = font->ascent;
 
   if (font->x_height == 0)
-    font->x_height   = 3 * font->ascent / 5;
+    font->x_height = 3 * font->ascent / 5;
 
   // Build a sparse glyph widths table...
   font->min_char = -1;
@@ -477,6 +477,11 @@ ttfCreate(const char   *filename,	// I - Filename
       else
 	font->widths[bin][i & 255] = widths[glyph];
     }
+
+#ifdef DEBUG
+    if (i >= ' ' && i < 127)
+      TTF_DEBUG("ttfCreate: width['%c']=%d(%d)\n", (char)i, font->widths[0][i].width, font->widths[0][i].left_bearingx);
+#endif // DEBUG
   }
 
   // Cleanup and return the font...
@@ -687,9 +692,6 @@ ttfGetExtents(
       ch = *s++;
     }
 
-    // Issue #1: Offset past ".notdef"...
-    ch ++;
-
     // Find its width...
     if ((widths = font->widths[ch / 256]) != NULL)
     {
@@ -733,17 +735,6 @@ const char *				// O - Family name
 ttfGetFamily(ttf_t *font)		// I - Font
 {
   return (font ? font->family : NULL);
-}
-
-
-//
-// 'ttfIsFixedPitch()' - Determine whether a font is fixedpitch.
-//
-
-bool					// O - `true` if fixed pitch, `false` otherwise
-ttfIsFixedPitch(ttf_t *font)		// I - Font
-{
-  return (font ? font->is_fixed : false);
 }
 
 
@@ -855,13 +846,14 @@ int					// O - Width in 1000ths
 ttfGetWidth(ttf_t *font,		// I - Font
             int   ch)			// I - Unicode character
 {
-  int	bin = ch >> 8;			// Bin in widths array
+  int	bin =  ch >> 8;			// Bin in widths array
 
 
   // Range check input...
   if (!font || ch < ' ' || ch == 0x7f)
     return (0);
-  else if (font->widths[bin])
+
+  if (font->widths[bin])
     return ((int)(1000.0f * font->widths[bin][ch & 255].width / font->units));
   else if (font->widths[0])		// .notdef
     return ((int)(1000.0f * font->widths[0][0].width / font->units));
@@ -878,6 +870,17 @@ int					// O - Lowercase letter height in 1000ths
 ttfGetXHeight(ttf_t *font)		// I - Font
 {
   return (font ? (int)(1000 * font->x_height / font->units) : 0);
+}
+
+
+//
+// 'ttfIsFixedPitch()' - Determine whether a font is fixedpitch.
+//
+
+bool					// O - `true` if fixed pitch, `false` otherwise
+ttfIsFixedPitch(ttf_t *font)		// I - Font
+{
+  return (font ? font->is_fixed : false);
 }
 
 
@@ -1304,17 +1307,17 @@ read_cmap(ttf_t *font)			// I - Font
               {
                 // Use an "obscure indexing trick" (words from the spec, not
                 // mine) to look up the glyph index...
-                temp = segment->idRangeOffset / 2 + ch - segment->startCode + seg - segCount - 1;
+                temp = segment->idRangeOffset / 2 + ch - segment->startCode + seg - segCount;
 
-                if (temp < 0 || temp >= numGlyphIdArray || !glyphIdArray[temp])
+                if (temp < 0 || temp >= numGlyphIdArray)
                   glyph = -1;
 		else
-		  glyph = ((glyphIdArray[temp] + segment->idDelta) & 65535) - 1;
+		  glyph = (glyphIdArray[temp] + segment->idDelta) & 65535;
               }
               else
               {
                 // Just use idDelta to compute a glyph index...
-                glyph = ((ch + segment->idDelta) & 65535) - 1;
+                glyph = (ch + segment->idDelta) & 65535;
 	      }
 
 	      cmapptr[ch] = glyph;
@@ -1581,6 +1584,8 @@ read_hmtx(ttf_t           *font,	// I - Font
   {
     widths[i].width        = (short)read_ushort(font);
     widths[i].left_bearing = (short)read_short(font);
+
+    TTF_DEBUG("read_hmtx: widths[%d].width=%d, .left_bearing=%d\n", i, widths[i].width, widths[i].left_bearing);
   }
 
   return (widths);
