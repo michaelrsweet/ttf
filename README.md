@@ -30,7 +30,7 @@ sample font files in the `testfiles` directory:
 Legal Stuff
 -----------
 
-Copyright © 2018-2023 by Michael R Sweet.
+Copyright © 2018-2024 by Michael R Sweet.
 
 mmd is licensed under the Apache License Version 2.0 with an exception to
 allow linking against GPL2/LGPL2 software (like older versions of CUPS).  See

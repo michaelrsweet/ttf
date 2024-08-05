@@ -3,13 +3,13 @@
 #
 #     https://github.com/michaelrsweet/ttf
 #
-# Copyright © 2021-2023 by Michael R Sweet.
+# Copyright © 2021-2024 by Michael R Sweet.
 #
 # Licensed under Apache License v2.0.  See the file "LICENSE" for more
 # information.
 #
 
-VERSION	=	1.0.1
+VERSION	=	1.0.2
 prefix	=	$(DESTDIR)/usr/local
 includedir =	$(prefix)/include
 libdir	=	$(prefix)/lib
