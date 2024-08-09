@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<title>TTF v1.0.0 Manual</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<meta name="generator" content="codedoc v3.7">
+<meta name="author" content="Michael R Sweet">
+<meta name="language" content="en-US">
+<meta name="copyright" content="Copyright © 2018-2024 by Michael R Sweet">
+<meta name="version" content="1.0.0">
+<style type="text/css"><!--
+body {
+  background: white;
+  color: black;
+  font-family: sans-serif;
+  font-size: 12pt;
+}
+a {
+  color: black;
+}
+a:link, a:visited {
+  color: #00f;
+}
+a:link:hover, a:visited:hover, a:active {
+  color: #c0c;
+}
+body, p, h1, h2, h3, h4, h5, h6 {
+  font-family: sans-serif;
+  line-height: 1.4;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  page-break-inside: avoid;
+}
+h1 {
+  font-size: 250%;
+  margin: 0;
+}
+h2 {
+  font-size: 250%;
+  margin-top: 1.5em;
+}
+h3 {
+  font-size: 200%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h4 {
+  font-size: 150%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h5 {
+  font-size: 125%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+h6 {
+  font-size: 110%;
+  margin-bottom: 0.5em;
+  margin-top: 1.5em;
+}
+img.title {
+  width: 256px;
+}
+div.header h1, div.header p {
+  text-align: center;
+}
+div.contents, div.body, div.footer {
+  page-break-before: always;
+}
+.class, .enumeration, .function, .struct, .typedef, .union {
+  border-bottom: solid 2px gray;
+}
+.description {
+  margin-top: 0.5em;
+}
+.function {
+  margin-bottom: 0;
+}
+blockquote {
+  border: solid thin gray;
+  box-shadow: 3px 3px 5px rgba(127,127,127,0.25);
+  margin: 1em 0;
+  padding: 10px;
+  page-break-inside: avoid;
+}
+blockquote :first-child {
+  margin-top: 0;
+}
+blockquote :first-child {
+  margin-bottom: 0;
+}
+p code, li code, p.code, pre, ul.code li {
+  font-family: monospace;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+p.code, pre, ul.code li {
+  background: rgba(127,127,127,0.25);
+  border: thin dotted gray;
+  padding: 10px;
+  page-break-inside: avoid;
+}
+pre {
+  white-space: pre-wrap;
+}
+a:link, a:visited {
+  text-decoration: none;
+}
+span.info {
+  background: black;
+  border: solid thin black;
+  color: white;
+  font-size: 80%;
+  font-style: italic;
+  font-weight: bold;
+  white-space: nowrap;
+}
+h1 span.info, h2 span.info, h3 span.info, h4 span.info {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  float: right;
+  padding: 3px 6px;
+}
+ul.code, ul.contents, ul.subcontents {
+  list-style-type: none;
+  margin: 0;
+  padding-left: 0;
+}
+ul.code li {
+  margin: 0;
+}
+ul.contents > li {
+  margin-top: 1em;
+}
+ul.contents li ul.code, ul.contents li ul.subcontents {
+  padding-left: 2em;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+td {
+  border: solid 1px gray;
+  padding: 5px 10px;
+  vertical-align: top;
+}
+td.left {
+  text-align: left;
+}
+td.center {
+  text-align: center;
+}
+td.right {
+  text-align: right;
+}
+th {
+  border-bottom: solid 2px gray;
+  padding: 1px 5px;
+  text-align: center;
+  vertical-align: bottom;
+}
+tr:nth-child(even) {
+  background: rgba(127,127,127,0.25);
+}
+table.list {
+  border-collapse: collapse;
+  width: 100%;
+}
+table.list th {
+  border-bottom: none;
+  border-right: 2px solid gray;
+  font-family: monospace;
+  font-weight: normal;
+  padding: 5px 10px 5px 2px;
+  text-align: right;
+  vertical-align: top;
+}
+table.list td {
+  border: none;
+  padding: 5px 2px 5px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+h2.title, h3.title {
+  border-bottom: solid 2px gray;
+}
+/* Syntax highlighting */
+span.comment {
+  color: darkgreen;
+}
+span.directive {
+  color: red;
+}
+span.number {
+  color: brown;
+}
+span.reserved {
+  color: blue;
+}
+span.string {
+  color: magenta;
+}
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: black;
+    color: #ccc;
+  }
+  a {
+    color: #ccc;
+  }
+  a:link, a:visited {
+    color: #66f;
+  }
+  a:link:hover, a:visited:hover, a:active {
+    color: #f06;
+  }
+}
+/* Show contents on left side in web browser */
+@media screen and (min-width: 800px) {
+  div.contents {
+    border-right: solid thin gray;
+    bottom: 0px;
+    box-shadow: 3px 3px 5px rgba(127,127,127,0.5);
+    font-size: 10pt;
+    left: 0px;
+    overflow: scroll;
+    padding: 1%;
+    position: fixed;
+    top: 0px;
+    width: 18%;
+  }
+  div.contents h2.title {
+    margin-top: 0px;
+  }
+  div.header, div.body, div.footer {
+    margin-left: 20%;
+    padding: 1% 2%;
+  }
+}
+/* Center title page content vertically */
+@media print {
+  div.header {
+    padding-top: 33%;
+  }
+}
+--></style>
+</head>
+<body>
+<div class="header">
+<p><img class="title" src="ttf-512.png"></p>
+<h1 class="title">TTF v1.0.0 Manual</h1>
+<p>Michael R Sweet</p>
+<p>Copyright © 2018-2024 by Michael R Sweet</p>
+</div>
+<div class="contents">
+<h2 class="title">Contents</h2>
+<ul class="contents">
+<li><a href="#introduction">Introduction</a><ul class="subcontents">
+<li><a href="#using-the-ttf-library">Using the TTF Library</a></li>
+</ul></li>
+<li><a href="#FUNCTIONS">Functions</a><ul class="subcontents">
+<li><a href="#ttfCreate">ttfCreate</a></li>
+<li><a href="#ttfDelete">ttfDelete</a></li>
+<li><a href="#ttfGetAscent">ttfGetAscent</a></li>
+<li><a href="#ttfGetBounds">ttfGetBounds</a></li>
+<li><a href="#ttfGetCMap">ttfGetCMap</a></li>
+<li><a href="#ttfGetCapHeight">ttfGetCapHeight</a></li>
+<li><a href="#ttfGetCopyright">ttfGetCopyright</a></li>
+<li><a href="#ttfGetDescent">ttfGetDescent</a></li>
+<li><a href="#ttfGetExtents">ttfGetExtents</a></li>
+<li><a href="#ttfGetFamily">ttfGetFamily</a></li>
+<li><a href="#ttfGetItalicAngle">ttfGetItalicAngle</a></li>
+<li><a href="#ttfGetMaxChar">ttfGetMaxChar</a></li>
+<li><a href="#ttfGetMinChar">ttfGetMinChar</a></li>
+<li><a href="#ttfGetNumFonts">ttfGetNumFonts</a></li>
+<li><a href="#ttfGetPostScriptName">ttfGetPostScriptName</a></li>
+<li><a href="#ttfGetStretch">ttfGetStretch</a></li>
+<li><a href="#ttfGetStyle">ttfGetStyle</a></li>
+<li><a href="#ttfGetVersion">ttfGetVersion</a></li>
+<li><a href="#ttfGetWeight">ttfGetWeight</a></li>
+<li><a href="#ttfGetWidth">ttfGetWidth</a></li>
+<li><a href="#ttfGetXHeight">ttfGetXHeight</a></li>
+<li><a href="#ttfIsFixedPitch">ttfIsFixedPitch</a></li>
+</ul></li>
+<li><a href="#TYPES">Data Types</a><ul class="subcontents">
+<li><a href="#ttf_err_cb_t">ttf_err_cb_t</a></li>
+<li><a href="#ttf_rect_t">ttf_rect_t</a></li>
+<li><a href="#ttf_stretch_t">ttf_stretch_t</a></li>
+<li><a href="#ttf_style_t">ttf_style_t</a></li>
+<li><a href="#ttf_t">ttf_t</a></li>
+<li><a href="#ttf_variant_t">ttf_variant_t</a></li>
+<li><a href="#ttf_weight_t">ttf_weight_t</a></li>
+</ul></li>
+<li><a href="#STRUCTURES">Structures</a><ul class="subcontents">
+<li><a href="#ttf_rect_s">ttf_rect_s</a></li>
+</ul></li>
+<li><a href="#ENUMERATIONS">Enumerations</a><ul class="subcontents">
+<li><a href="#ttf_stretch_e">ttf_stretch_e</a></li>
+<li><a href="#ttf_style_e">ttf_style_e</a></li>
+<li><a href="#ttf_variant_e">ttf_variant_e</a></li>
+<li><a href="#ttf_weight_e">ttf_weight_e</a></li>
+</ul></li>
+</ul>
+</div>
+<div class="body">
+<h2 class="title" id="introduction">Introduction</h2>
+<p>TTF is a simple C library for using TrueType and OpenType font files.</p>
+<h3 class="title" id="using-the-ttf-library">Using the TTF Library</h3>
+<p>The TTF library has a single header file:</p>
+<pre><code class="language-c"><span class="directive">#include &lt;ttf.h&gt;</span>
+</code></pre>
+<p>Use the <code>pkg-config</code> command to get the proper compiler and linker options:</p>
+<pre><code>CFLAGS = `pkg-config --cflags ttf`
+LIBS = `pkg-config --libs ttf`
+
+cc -o myprogram `pkg-config --cflags ttf` myprogram.c `pkg-config --libs ttf`
+</code></pre>
+<p>The <a href="#ttfCreate"><code>ttfCreate</code></a> function opens a font file, returning a pointer to a <code>ttf_t</code> object:</p>
+<pre><code class="language-c">ttf_t *font = ttfCreate(<span class="string">&quot;FILENAME.ttf&quot;</span>, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_data*/</span>NULL);
+</code></pre>
+<p>The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the <a href="#ttfDelete"><code>ttfDelete</code></a> function to free the memory that was used.</p>
+<h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
+<h3 class="function"><a id="ttfCreate">ttfCreate</a></h3>
+<p class="description">Create a new font object for the named font file.</p>
+<p class="code">
+<a href="#ttf_t">ttf_t</a> *ttfCreate(<span class="reserved">const</span> <span class="reserved">char</span> *filename, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_data);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>filename</th>
+<td class="description">Filename</td></tr>
+<tr><th>idx</th>
+<td class="description">Font number to create in collection (0-based)</td></tr>
+<tr><th>err_cb</th>
+<td class="description">Error callback or <code>NULL</code> to log to stderr</td></tr>
+<tr><th>err_data</th>
+<td class="description">Error callback data</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">New font object</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function creates a new font object for the named TrueType or OpenType
+font file or collection.  The &quot;filename&quot; argument specifies the name of the
+file to read.<br>
+<br>
+The &quot;idx&quot; argument specifies the font to load from a collection - the first
+font is number <code>0</code>.  Once created, you can call the <a href="#ttfGetNumFonts"><code>ttfGetNumFonts</code></a>
+function to determine whether the loaded font file is a collection with more
+than one font.<br>
+<br>
+The &quot;err_cb&quot; and &quot;err_data&quot; arguments specify a callback function and data
+pointer for receiving error messages.  If <code>NULL</code>, errors are sent to the
+<code>stderr</code> file.  The callback function receives the data pointer and a text
+message string, for example:
+
+<pre>
+void my_err_cb(void *err_data, const char *message)
+{
+  fprintf(stderr, &quot;ERROR: %sn&quot;, message);
+}
+</pre>
+</p>
+<h3 class="function"><a id="ttfDelete">ttfDelete</a></h3>
+<p class="description">Free all memory used for a font family object.</p>
+<p class="code">
+<span class="reserved">void</span> ttfDelete(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h3 class="function"><a id="ttfGetAscent">ttfGetAscent</a></h3>
+<p class="description">Get the maximum height of non-accented characters.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetAscent(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Ascent in 1000ths</p>
+<h3 class="function"><a id="ttfGetBounds">ttfGetBounds</a></h3>
+<p class="description">Get the bounds of all characters in a font.</p>
+<p class="code">
+<a href="#ttf_rect_t">ttf_rect_t</a> *ttfGetBounds(<a href="#ttf_t">ttf_t</a> *font, <a href="#ttf_rect_t">ttf_rect_t</a> *bounds);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>bounds</th>
+<td class="description">Bounds buffer</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Bounds or <code>NULL</code> on error</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function gets the bounds of all characters in a font.  The &quot;bounds&quot;
+argument is a pointer to a <code>ttf_rect_t</code> structure that will be filled with
+the limits for characters in the font scaled to a 1000x1000 unit square.</p>
+<h3 class="function"><a id="ttfGetCMap">ttfGetCMap</a></h3>
+<p class="description">Get the Unicode to glyph mapping table.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">int</span> *ttfGetCMap(<a href="#ttf_t">ttf_t</a> *font, size_t *num_cmap);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>num_cmap</th>
+<td class="description">Number of entries in table</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">CMap table</p>
+<h3 class="function"><a id="ttfGetCapHeight">ttfGetCapHeight</a></h3>
+<p class="description">Get the height of capital letters.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetCapHeight(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Capital letter height in 1000ths</p>
+<h3 class="function"><a id="ttfGetCopyright">ttfGetCopyright</a></h3>
+<p class="description">Get the copyright text for a font.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfGetCopyright(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Copyright text</p>
+<h3 class="function"><a id="ttfGetDescent">ttfGetDescent</a></h3>
+<p class="description">Get the maximum depth of non-accented characters.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetDescent(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Descent in 1000ths</p>
+<h3 class="function"><a id="ttfGetExtents">ttfGetExtents</a></h3>
+<p class="description">Get the extents of a UTF-8 string.</p>
+<p class="code">
+<a href="#ttf_rect_t">ttf_rect_t</a> *ttfGetExtents(<a href="#ttf_t">ttf_t</a> *font, <span class="reserved">float</span> size, <span class="reserved">const</span> <span class="reserved">char</span> *s, <a href="#ttf_rect_t">ttf_rect_t</a> *extents);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>size</th>
+<td class="description">Font size</td></tr>
+<tr><th>s</th>
+<td class="description">String</td></tr>
+<tr><th>extents</th>
+<td class="description">Extents of the string</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Pointer to extents or <code>NULL</code> on error</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function computes the extents of the UTF-8 string &quot;s&quot; when rendered
+using the specified font &quot;font&quot; and size &quot;size&quot;.  The &quot;extents&quot; argument is
+a pointer to a <code>ttf_rect_t</code> structure that is filled with the extents of a
+simple rendering of the string with no kerning or rewriting applied.  The
+values are scaled using the specified font size.</p>
+<h3 class="function"><a id="ttfGetFamily">ttfGetFamily</a></h3>
+<p class="description">Get the family name of a font.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfGetFamily(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Family name</p>
+<h3 class="function"><a id="ttfGetItalicAngle">ttfGetItalicAngle</a></h3>
+<p class="description">Get the italic angle.</p>
+<p class="code">
+<span class="reserved">float</span> ttfGetItalicAngle(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Angle in degrees</p>
+<h3 class="function"><a id="ttfGetMaxChar">ttfGetMaxChar</a></h3>
+<p class="description">Get the last character in the font.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetMaxChar(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Last character in font</p>
+<h3 class="function"><a id="ttfGetMinChar">ttfGetMinChar</a></h3>
+<p class="description">Get the first character in the font.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetMinChar(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">First character in font</p>
+<h3 class="function"><a id="ttfGetNumFonts">ttfGetNumFonts</a></h3>
+<p class="description">Get the number of fonts in this collection.</p>
+<p class="code">
+size_t ttfGetNumFonts(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Number of fonts</p>
+<h3 class="function"><a id="ttfGetPostScriptName">ttfGetPostScriptName</a></h3>
+<p class="description">Get the PostScript name of a font.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfGetPostScriptName(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">PostScript name</p>
+<h3 class="function"><a id="ttfGetStretch">ttfGetStretch</a></h3>
+<p class="description">Get the font &quot;stretch&quot; value...</p>
+<p class="code">
+<a href="#ttf_stretch_t">ttf_stretch_t</a> ttfGetStretch(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Stretch value</p>
+<h3 class="function"><a id="ttfGetStyle">ttfGetStyle</a></h3>
+<p class="description">Get the font style.</p>
+<p class="code">
+<a href="#ttf_style_t">ttf_style_t</a> ttfGetStyle(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Style</p>
+<h3 class="function"><a id="ttfGetVersion">ttfGetVersion</a></h3>
+<p class="description">Get the version number of a font.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfGetVersion(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Version number</p>
+<h3 class="function"><a id="ttfGetWeight">ttfGetWeight</a></h3>
+<p class="description">Get the weight of a font.</p>
+<p class="code">
+<a href="#ttf_weight_t">ttf_weight_t</a> ttfGetWeight(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Weight</p>
+<h3 class="function"><a id="ttfGetWidth">ttfGetWidth</a></h3>
+<p class="description">Get the width of a single character.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetWidth(<a href="#ttf_t">ttf_t</a> *font, <span class="reserved">int</span> ch);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>ch</th>
+<td class="description">Unicode character</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Width in 1000ths</p>
+<h3 class="function"><a id="ttfGetXHeight">ttfGetXHeight</a></h3>
+<p class="description">Get the height of lowercase letters.</p>
+<p class="code">
+<span class="reserved">int</span> ttfGetXHeight(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Lowercase letter height in 1000ths</p>
+<h3 class="function"><a id="ttfIsFixedPitch">ttfIsFixedPitch</a></h3>
+<p class="description">Determine whether a font is fixedpitch.</p>
+<p class="code">
+<span class="reserved">bool</span> ttfIsFixedPitch(<a href="#ttf_t">ttf_t</a> *font);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description"><code>true</code> if fixed pitch, <code>false</code> otherwise</p>
+<h2 class="title"><a id="TYPES">Data Types</a></h2>
+<h3 class="typedef"><a id="ttf_err_cb_t">ttf_err_cb_t</a></h3>
+<p class="description">Font error callback</p>
+<p class="code">
+typedef void (*ttf_err_cb_t)(void *data, const char *message);
+</p>
+<h3 class="typedef"><a id="ttf_rect_t">ttf_rect_t</a></h3>
+<p class="description">Bounding rectangle</p>
+<p class="code">
+typedef struct <a href="#ttf_rect_s">ttf_rect_s</a> ttf_rect_t;
+</p>
+<h3 class="typedef"><a id="ttf_stretch_t">ttf_stretch_t</a></h3>
+<p class="description">Font stretch</p>
+<p class="code">
+typedef enum <a href="#ttf_stretch_e">ttf_stretch_e</a> ttf_stretch_t;
+</p>
+<h3 class="typedef"><a id="ttf_style_t">ttf_style_t</a></h3>
+<p class="description">Font style</p>
+<p class="code">
+typedef enum <a href="#ttf_style_e">ttf_style_e</a> ttf_style_t;
+</p>
+<h3 class="typedef"><a id="ttf_t">ttf_t</a></h3>
+<p class="description">Font object</p>
+<p class="code">
+typedef struct _ttf_s ttf_t;
+</p>
+<h3 class="typedef"><a id="ttf_variant_t">ttf_variant_t</a></h3>
+<p class="description">Font variant</p>
+<p class="code">
+typedef enum <a href="#ttf_variant_e">ttf_variant_e</a> ttf_variant_t;
+</p>
+<h3 class="typedef"><a id="ttf_weight_t">ttf_weight_t</a></h3>
+<p class="description">Font weight</p>
+<p class="code">
+typedef enum <a href="#ttf_weight_e">ttf_weight_e</a> ttf_weight_t;
+</p>
+<h2 class="title"><a id="STRUCTURES">Structures</a></h2>
+<h3 class="struct"><a id="ttf_rect_s">ttf_rect_s</a></h3>
+<p class="description">Bounding rectangle</p>
+<p class="code"><span class="reserved">struct</span> ttf_rect_s {<br>
+&#160;&#160;&#160;&#160;<span class="reserved">float</span> bottom;<br>
+&#160;&#160;&#160;&#160;<span class="reserved">float</span> left;<br>
+&#160;&#160;&#160;&#160;<span class="reserved">float</span> right;<br>
+&#160;&#160;&#160;&#160;<span class="reserved">float</span> top;<br>
+};</p>
+<h4 class="members">Members</h4>
+<table class="list"><tbody>
+<tr><th>bottom </th>
+<td class="description">Bottom offset</td></tr>
+<tr><th>left </th>
+<td class="description">Left offset</td></tr>
+<tr><th>right </th>
+<td class="description">Right offset</td></tr>
+<tr><th>top </th>
+<td class="description">Top offset</td></tr>
+</tbody></table>
+<h2 class="title"><a id="ENUMERATIONS">Constants</a></h2>
+<h3 class="enumeration"><a id="ttf_stretch_e">ttf_stretch_e</a></h3>
+<p class="description">Font stretch</p>
+<h4 class="constants">Constants</h4>
+<table class="list"><tbody>
+<tr><th>TTF_STRETCH_CONDENSED </th><td class="description">condensed</td></tr>
+<tr><th>TTF_STRETCH_EXPANDED </th><td class="description">expanded</td></tr>
+<tr><th>TTF_STRETCH_EXTRA_CONDENSED </th><td class="description">extra-condensed</td></tr>
+<tr><th>TTF_STRETCH_EXTRA_EXPANDED </th><td class="description">extra-expanded</td></tr>
+<tr><th>TTF_STRETCH_NORMAL </th><td class="description">normal</td></tr>
+<tr><th>TTF_STRETCH_SEMI_CONDENSED </th><td class="description">semi-condensed</td></tr>
+<tr><th>TTF_STRETCH_SEMI_EXPANDED </th><td class="description">semi-expanded</td></tr>
+<tr><th>TTF_STRETCH_ULTRA_CONDENSED </th><td class="description">ultra-condensed</td></tr>
+<tr><th>TTF_STRETCH_ULTRA_EXPANDED </th><td class="description">ultra-expanded</td></tr>
+</tbody></table>
+<h3 class="enumeration"><a id="ttf_style_e">ttf_style_e</a></h3>
+<p class="description">Font style</p>
+<h4 class="constants">Constants</h4>
+<table class="list"><tbody>
+<tr><th>TTF_STYLE_ITALIC </th><td class="description">Italic font</td></tr>
+<tr><th>TTF_STYLE_NORMAL </th><td class="description">Normal font</td></tr>
+<tr><th>TTF_STYLE_OBLIQUE </th><td class="description">Oblique (angled) font</td></tr>
+</tbody></table>
+<h3 class="enumeration"><a id="ttf_variant_e">ttf_variant_e</a></h3>
+<p class="description">Font variant</p>
+<h4 class="constants">Constants</h4>
+<table class="list"><tbody>
+<tr><th>TTF_VARIANT_NORMAL </th><td class="description">Normal font</td></tr>
+<tr><th>TTF_VARIANT_SMALL_CAPS </th><td class="description">Font whose lowercase letters are small capitals</td></tr>
+</tbody></table>
+<h3 class="enumeration"><a id="ttf_weight_e">ttf_weight_e</a></h3>
+<p class="description">Font weight</p>
+<h4 class="constants">Constants</h4>
+<table class="list"><tbody>
+<tr><th>TTF_WEIGHT_100 </th><td class="description">Weight 100 (Thin)</td></tr>
+<tr><th>TTF_WEIGHT_200 </th><td class="description">Weight 200 (Extra/Ultra-Light)</td></tr>
+<tr><th>TTF_WEIGHT_300 </th><td class="description">Weight 300 (Light)</td></tr>
+<tr><th>TTF_WEIGHT_400 </th><td class="description">Weight 400 (Normal/Regular)</td></tr>
+<tr><th>TTF_WEIGHT_500 </th><td class="description">Weight 500 (Medium)</td></tr>
+<tr><th>TTF_WEIGHT_600 </th><td class="description">Weight 600 (Semi/Demi-Bold)</td></tr>
+<tr><th>TTF_WEIGHT_700 </th><td class="description">Weight 700 (Bold)</td></tr>
+<tr><th>TTF_WEIGHT_800 </th><td class="description">Weight 800 (Extra/Ultra-Bold)</td></tr>
+<tr><th>TTF_WEIGHT_900 </th><td class="description">Weight 900 (Black/Heavy)</td></tr>
+</tbody></table>
+</div>
+</body>
+</html>

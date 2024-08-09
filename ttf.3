@@ -1,0 +1,413 @@
+.TH ttf 3 "ttf - functions" "2024-08-09" "ttf - functions"
+.SH NAME
+ttf \- ttf - functions
+.SH Introduction
+.PP
+TTF is a simple C library for using TrueType and OpenType font files.
+.SS Using the TTF Library
+.PP
+The TTF library has a single header file:
+.nf
+
+    #include <ttf.h>
+.fi
+.PP
+Use the pkg\-config command to get the proper compiler and linker options:
+.nf
+
+    CFLAGS = `pkg\-config \-\-cflags ttf`
+    LIBS = `pkg\-config \-\-libs ttf`
+    
+    cc \-o myprogram `pkg\-config \-\-cflags ttf` myprogram.c `pkg\-config \-\-libs ttf`
+.fi
+.PP
+The ttfCreate function opens a font file, returning a pointer to a ttf_t object:
+.nf
+
+    ttf_t *font = ttfCreate("FILENAME.ttf", /*idx*/0, /*err_cb*/NULL, /*err_data*/NULL);
+.fi
+.PP
+The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the ttfDelete function to free the memory that was used.
+
+.SH ENUMERATIONS
+.SS ttf_stretch_e
+Font stretch
+.TP 5
+TTF_STRETCH_CONDENSED
+.br
+condensed
+.TP 5
+TTF_STRETCH_EXPANDED
+.br
+expanded
+.TP 5
+TTF_STRETCH_EXTRA_CONDENSED
+.br
+extra-condensed
+.TP 5
+TTF_STRETCH_EXTRA_EXPANDED
+.br
+extra-expanded
+.TP 5
+TTF_STRETCH_NORMAL
+.br
+normal
+.TP 5
+TTF_STRETCH_SEMI_CONDENSED
+.br
+semi-condensed
+.TP 5
+TTF_STRETCH_SEMI_EXPANDED
+.br
+semi-expanded
+.TP 5
+TTF_STRETCH_ULTRA_CONDENSED
+.br
+ultra-condensed
+.TP 5
+TTF_STRETCH_ULTRA_EXPANDED
+.br
+ultra-expanded
+.SS ttf_style_e
+Font style
+.TP 5
+TTF_STYLE_ITALIC
+.br
+Italic font
+.TP 5
+TTF_STYLE_NORMAL
+.br
+Normal font
+.TP 5
+TTF_STYLE_OBLIQUE
+.br
+Oblique (angled) font
+.SS ttf_variant_e
+Font variant
+.TP 5
+TTF_VARIANT_NORMAL
+.br
+Normal font
+.TP 5
+TTF_VARIANT_SMALL_CAPS
+.br
+Font whose lowercase letters are small capitals
+.SS ttf_weight_e
+Font weight
+.TP 5
+TTF_WEIGHT_100
+.br
+Weight 100 (Thin)
+.TP 5
+TTF_WEIGHT_200
+.br
+Weight 200 (Extra/Ultra-Light)
+.TP 5
+TTF_WEIGHT_300
+.br
+Weight 300 (Light)
+.TP 5
+TTF_WEIGHT_400
+.br
+Weight 400 (Normal/Regular)
+.TP 5
+TTF_WEIGHT_500
+.br
+Weight 500 (Medium)
+.TP 5
+TTF_WEIGHT_600
+.br
+Weight 600 (Semi/Demi-Bold)
+.TP 5
+TTF_WEIGHT_700
+.br
+Weight 700 (Bold)
+.TP 5
+TTF_WEIGHT_800
+.br
+Weight 800 (Extra/Ultra-Bold)
+.TP 5
+TTF_WEIGHT_900
+.br
+Weight 900 (Black/Heavy)
+.SH FUNCTIONS
+.SS ttfCreate
+Create a new font object for the named font file.
+.PP
+.nf
+ttf_t * ttfCreate (
+    const char *filename,
+    size_t idx,
+    ttf_err_cb_t err_cb,
+    void *err_data
+);
+.fi
+.PP
+This function creates a new font object for the named TrueType or OpenType
+font file or collection.  The "filename" argument specifies the name of the
+file to read.
+.PP
+The "idx" argument specifies the font to load from a collection - the first
+font is number \fB0\fR.  Once created, you can call the \fIttfGetNumFonts\fR
+function to determine whether the loaded font file is a collection with more
+than one font.
+.PP
+The "err_cb" and "err_data" arguments specify a callback function and data
+pointer for receiving error messages.  If \fBNULL\fR, errors are sent to the
+\fBstderr\fR file.  The callback function receives the data pointer and a text
+message string, for example:
+.PP
+.nf
+    void my_err_cb(void *err_data, const char *message)
+    {
+      fprintf(stderr, "ERROR: %sn", message);
+    }
+
+.fi
+
+.SS ttfDelete
+Free all memory used for a font family object.
+.PP
+.nf
+void ttfDelete (
+    ttf_t *font
+);
+.fi
+.SS ttfGetAscent
+Get the maximum height of non-accented characters.
+.PP
+.nf
+int  ttfGetAscent (
+    ttf_t *font
+);
+.fi
+.SS ttfGetBounds
+Get the bounds of all characters in a font.
+.PP
+.nf
+ttf_rect_t * ttfGetBounds (
+    ttf_t *font,
+    ttf_rect_t *bounds
+);
+.fi
+.PP
+This function gets the bounds of all characters in a font.  The "bounds"
+argument is a pointer to a \fBttf_rect_t\fR structure that will be filled with
+the limits for characters in the font scaled to a 1000x1000 unit square.
+.SS ttfGetCMap
+Get the Unicode to glyph mapping table.
+.PP
+.nf
+const int * ttfGetCMap (
+    ttf_t *font,
+    size_t *num_cmap
+);
+.fi
+.SS ttfGetCapHeight
+Get the height of capital letters.
+.PP
+.nf
+int  ttfGetCapHeight (
+    ttf_t *font
+);
+.fi
+.SS ttfGetCopyright
+Get the copyright text for a font.
+.PP
+.nf
+const char * ttfGetCopyright (
+    ttf_t *font
+);
+.fi
+.SS ttfGetDescent
+Get the maximum depth of non-accented characters.
+.PP
+.nf
+int  ttfGetDescent (
+    ttf_t *font
+);
+.fi
+.SS ttfGetExtents
+Get the extents of a UTF-8 string.
+.PP
+.nf
+ttf_rect_t * ttfGetExtents (
+    ttf_t *font,
+    float size,
+    const char *s,
+    ttf_rect_t *extents
+);
+.fi
+.PP
+This function computes the extents of the UTF-8 string "s" when rendered
+using the specified font "font" and size "size".  The "extents" argument is
+a pointer to a \fBttf_rect_t\fR structure that is filled with the extents of a
+simple rendering of the string with no kerning or rewriting applied.  The
+values are scaled using the specified font size.
+.SS ttfGetFamily
+Get the family name of a font.
+.PP
+.nf
+const char * ttfGetFamily (
+    ttf_t *font
+);
+.fi
+.SS ttfGetItalicAngle
+Get the italic angle.
+.PP
+.nf
+float  ttfGetItalicAngle (
+    ttf_t *font
+);
+.fi
+.SS ttfGetMaxChar
+Get the last character in the font.
+.PP
+.nf
+int  ttfGetMaxChar (
+    ttf_t *font
+);
+.fi
+.SS ttfGetMinChar
+Get the first character in the font.
+.PP
+.nf
+int  ttfGetMinChar (
+    ttf_t *font
+);
+.fi
+.SS ttfGetNumFonts
+Get the number of fonts in this collection.
+.PP
+.nf
+size_t  ttfGetNumFonts (
+    ttf_t *font
+);
+.fi
+.SS ttfGetPostScriptName
+Get the PostScript name of a font.
+.PP
+.nf
+const char * ttfGetPostScriptName (
+    ttf_t *font
+);
+.fi
+.SS ttfGetStretch
+Get the font "stretch" value...
+.PP
+.nf
+ttf_stretch_t  ttfGetStretch (
+    ttf_t *font
+);
+.fi
+.SS ttfGetStyle
+Get the font style.
+.PP
+.nf
+ttf_style_t  ttfGetStyle (
+    ttf_t *font
+);
+.fi
+.SS ttfGetVersion
+Get the version number of a font.
+.PP
+.nf
+const char * ttfGetVersion (
+    ttf_t *font
+);
+.fi
+.SS ttfGetWeight
+Get the weight of a font.
+.PP
+.nf
+ttf_weight_t  ttfGetWeight (
+    ttf_t *font
+);
+.fi
+.SS ttfGetWidth
+Get the width of a single character.
+.PP
+.nf
+int  ttfGetWidth (
+    ttf_t *font,
+    int ch
+);
+.fi
+.SS ttfGetXHeight
+Get the height of lowercase letters.
+.PP
+.nf
+int  ttfGetXHeight (
+    ttf_t *font
+);
+.fi
+.SS ttfIsFixedPitch
+Determine whether a font is fixedpitch.
+.PP
+.nf
+bool  ttfIsFixedPitch (
+    ttf_t *font
+);
+.fi
+.SH STRUCTURES
+.SS ttf_rect_s
+Bounding rectangle
+.PP
+.nf
+struct ttf_rect_s
+{
+  float bottom;
+  float left;
+  float right;
+  float top;
+};
+.fi
+.SH TYPES
+.SS ttf_err_cb_t
+Font error callback
+.PP
+.nf
+typedef void(*)(void *data, const char *message) ttf_err_cb_t;
+.fi
+.SS ttf_rect_t
+Bounding rectangle
+.PP
+.nf
+typedef struct ttf_rect_s ttf_rect_t;
+.fi
+.SS ttf_stretch_t
+Font stretch
+.PP
+.nf
+typedef enum ttf_stretch_e ttf_stretch_t;
+.fi
+.SS ttf_style_t
+Font style
+.PP
+.nf
+typedef enum ttf_style_e ttf_style_t;
+.fi
+.SS ttf_t
+Font object
+.PP
+.nf
+typedef struct _ttf_s ttf_t;
+.fi
+.SS ttf_variant_t
+Font variant
+.PP
+.nf
+typedef enum ttf_variant_e ttf_variant_t;
+.fi
+.SS ttf_weight_t
+Font weight
+.PP
+.nf
+typedef enum ttf_weight_e ttf_weight_t;
+.fi
+.SH AUTHOR
+.PP
+Michael R Sweet
+.SH COPYRIGHT
+.PP
+Copyright (c) 2018-2024 by Michael R Sweet

@@ -1,7 +1,7 @@
 TTF - TrueType/OpenType Font Library
 ====================================
 
-TTF is a simple C library for reading TrueType and OpenType font files.
+TTF is a simple C library for using TrueType and OpenType font files.
 
 
 Requirements
@@ -27,11 +27,17 @@ sample font files in the `testfiles` directory:
     make test
 
 
+Resources
+---------
+
+The "ttf.html" file contains some simple HTML documentation for the library.
+
+
 Legal Stuff
 -----------
 
 Copyright © 2018-2024 by Michael R Sweet.
 
-mmd is licensed under the Apache License Version 2.0 with an exception to
+TTF is licensed under the Apache License Version 2.0 with an exception to
 allow linking against GPL2/LGPL2 software (like older versions of CUPS).  See
 the files "LICENSE" and "NOTICE" for more information.
