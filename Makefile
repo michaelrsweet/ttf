@@ -9,7 +9,7 @@
 # information.
 #
 
-VERSION	=	1.0.2
+VERSION	=	1.0.0
 prefix	=	$(DESTDIR)/usr/local
 includedir =	$(prefix)/include
 libdir	=	$(prefix)/lib
