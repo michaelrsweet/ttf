@@ -36,7 +36,7 @@ The "ttf.html" file contains some simple HTML documentation for the library.
 Legal Stuff
 -----------
 
-Copyright © 2018-2024 by Michael R Sweet.
+Copyright © 2018-2025 by Michael R Sweet.
 
 TTF is licensed under the Apache License Version 2.0 with an exception to
 allow linking against GPL2/LGPL2 software (like older versions of CUPS).  See

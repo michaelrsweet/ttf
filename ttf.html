@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
-<title>TTF v1.0.0 Manual</title>
+<title>TTF v1.1.0 Manual</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<meta name="generator" content="codedoc v3.7">
+<meta name="generator" content="codedoc v3.8">
 <meta name="author" content="Michael R Sweet">
 <meta name="language" content="en-US">
-<meta name="copyright" content="Copyright © 2018-2024 by Michael R Sweet">
-<meta name="version" content="1.0.0">
+<meta name="copyright" content="Copyright © 2018-2025 by Michael R Sweet">
+<meta name="version" content="1.1.0">
 <style type="text/css"><!--
 body {
   background: white;
@@ -251,9 +251,9 @@ span.string {
 <body>
 <div class="header">
 <p><img class="title" src="ttf-512.png"></p>
-<h1 class="title">TTF v1.0.0 Manual</h1>
+<h1 class="title">TTF v1.1.0 Manual</h1>
 <p>Michael R Sweet</p>
-<p>Copyright © 2018-2024 by Michael R Sweet</p>
+<p>Copyright © 2018-2025 by Michael R Sweet</p>
 </div>
 <div class="contents">
 <h2 class="title">Contents</h2>
@@ -263,6 +263,7 @@ span.string {
 </ul></li>
 <li><a href="#FUNCTIONS">Functions</a><ul class="subcontents">
 <li><a href="#ttfCreate">ttfCreate</a></li>
+<li><a href="#ttfCreateData">ttfCreateData</a></li>
 <li><a href="#ttfDelete">ttfDelete</a></li>
 <li><a href="#ttfGetAscent">ttfGetAscent</a></li>
 <li><a href="#ttfGetBounds">ttfGetBounds</a></li>
@@ -322,6 +323,9 @@ cc -o myprogram `pkg-config --cflags ttf` myprogram.c `pkg-config --libs ttf`
 <pre><code class="language-c">ttf_t *font = ttfCreate(<span class="string">&quot;FILENAME.ttf&quot;</span>, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_data*/</span>NULL);
 </code></pre>
 <p>The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the <a href="#ttfDelete"><code>ttfDelete</code></a> function to free the memory that was used.</p>
+<p>If you already have a font file loaded in memory, the <a href="#ttfCreateData"><code>ttfCreateData</code></a> function can be used to create a <code>ttf_t</code> object from the buffer:</p>
+<pre><code class="language-c">ttf_t *font = ttfCreateData(data, datasize, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_data*/</span>NULL);
+</code></pre>
 <h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
 <h3 class="function"><a id="ttfCreate">ttfCreate</a></h3>
 <p class="description">Create a new font object for the named font file.</p>
@@ -344,6 +348,51 @@ cc -o myprogram `pkg-config --cflags ttf` myprogram.c `pkg-config --libs ttf`
 <p class="discussion">This function creates a new font object for the named TrueType or OpenType
 font file or collection.  The &quot;filename&quot; argument specifies the name of the
 file to read.<br>
+<br>
+The &quot;idx&quot; argument specifies the font to load from a collection - the first
+font is number <code>0</code>.  Once created, you can call the <a href="#ttfGetNumFonts"><code>ttfGetNumFonts</code></a>
+function to determine whether the loaded font file is a collection with more
+than one font.<br>
+<br>
+The &quot;err_cb&quot; and &quot;err_data&quot; arguments specify a callback function and data
+pointer for receiving error messages.  If <code>NULL</code>, errors are sent to the
+<code>stderr</code> file.  The callback function receives the data pointer and a text
+message string, for example:
+
+<pre>
+void my_err_cb(void *err_data, const char *message)
+{
+  fprintf(stderr, &quot;ERROR: %sn&quot;, message);
+}
+</pre>
+</p>
+<h3 class="function"><a id="ttfCreateData">ttfCreateData</a></h3>
+<p class="description">Create a new font object from a memory buffer.</p>
+<p class="code">
+<a href="#ttf_t">ttf_t</a> *ttfCreateData(<span class="reserved">void</span> *data, size_t datasize, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_data);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>data</th>
+<td class="description">Buffer</td></tr>
+<tr><th>datasize</th>
+<td class="description">Size of buffer in bytes</td></tr>
+<tr><th>idx</th>
+<td class="description">Font number to create in collection (0-based)</td></tr>
+<tr><th>err_cb</th>
+<td class="description">Error callback or <code>NULL</code> to log to stderr</td></tr>
+<tr><th>err_data</th>
+<td class="description">Error callback data</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">New font object</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function creates a new font object from a memory buffer.  The &quot;data&quot;
+argument specifies a pointer to the first byte of data and the &quot;datasize&quot;
+argument specifies the length of the memory buffer in bytes.<br>
+<br>
+</p><blockquote>
+Note: The caller is responsible for ensuring that the memory buffer is
+available until the font object is deleted with <a href="#ttfDelete"><code>ttfDelete</code></a>.</blockquote><br>
 <br>
 The &quot;idx&quot; argument specifies the font to load from a collection - the first
 font is number <code>0</code>.  Once created, you can call the <a href="#ttfGetNumFonts"><code>ttfGetNumFonts</code></a>

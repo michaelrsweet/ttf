@@ -14,7 +14,7 @@
 
 
 # Version and installation directories
-VERSION	=	1.0.0
+VERSION	=	1.1.0
 prefix	=	$(DESTDIR)/usr/local
 includedir =	$(prefix)/include
 libdir	=	$(prefix)/lib
@@ -28,7 +28,7 @@ CC	=	gcc
 CFLAGS	=	$(OPTIM) -Wall $(CPPFLAGS)
 CPPFLAGS =	'-DVERSION="$(VERSION)"'
 DOCFLAGS =	--author "Michael R Sweet" \
-		--copyright "Copyright (c) 2018-2024 by Michael R Sweet" \
+		--copyright "Copyright (c) 2018-2025 by Michael R Sweet" \
 		--docversion $(VERSION)
 LDFLAGS	=	$(OPTIM)
 LIBS	=

@@ -33,3 +33,10 @@ The returned pointer can be used with the other TTF library functions to provide
 various bits of metadata and measure the bounds of a given string of Unicode
 text.  Once you are done with the font data, use the [`ttfDelete`](@@) function
 to free the memory that was used.
+
+If you already have a font file loaded in memory, the [`ttfCreateData`](@@)
+function can be used to create a `ttf_t` object from the buffer:
+
+```c
+ttf_t *font = ttfCreateData(data, datasize, /*idx*/0, /*err_cb*/NULL, /*err_data*/NULL);
+```

@@ -1,4 +1,4 @@
-.TH ttf 3 "ttf - functions" "2024-08-09" "ttf - functions"
+.TH ttf 3 "ttf - functions" "2025-04-10" "ttf - functions"
 .SH NAME
 ttf \- ttf - functions
 .SH Introduction
@@ -28,6 +28,12 @@ The ttfCreate function opens a font file, returning a pointer to a ttf_t object:
 .fi
 .PP
 The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the ttfDelete function to free the memory that was used.
+.PP
+If you already have a font file loaded in memory, the ttfCreateData function can be used to create a ttf_t object from the buffer:
+.nf
+
+    ttf_t *font = ttfCreateData(data, datasize, /*idx*/0, /*err_cb*/NULL, /*err_data*/NULL);
+.fi
 
 .SH ENUMERATIONS
 .SS ttf_stretch_e
@@ -148,6 +154,47 @@ font file or collection.  The "filename" argument specifies the name of the
 file to read.
 .PP
 The "idx" argument specifies the font to load from a collection - the first
+font is number \fB0\fR.  Once created, you can call the \fIttfGetNumFonts\fR
+function to determine whether the loaded font file is a collection with more
+than one font.
+.PP
+The "err_cb" and "err_data" arguments specify a callback function and data
+pointer for receiving error messages.  If \fBNULL\fR, errors are sent to the
+\fBstderr\fR file.  The callback function receives the data pointer and a text
+message string, for example:
+.PP
+.nf
+    void my_err_cb(void *err_data, const char *message)
+    {
+      fprintf(stderr, "ERROR: %sn", message);
+    }
+
+.fi
+
+.SS ttfCreateData
+Create a new font object from a memory buffer.
+.PP
+.nf
+ttf_t * ttfCreateData (
+    void *data,
+    size_t datasize,
+    size_t idx,
+    ttf_err_cb_t err_cb,
+    void *err_data
+);
+.fi
+.PP
+This function creates a new font object from a memory buffer.  The "data"
+argument specifies a pointer to the first byte of data and the "datasize"
+argument specifies the length of the memory buffer in bytes.
+.PP
+.IP 5
+Note: The caller is responsible for ensuring that the memory buffer is
+.IP 5
+available until the font object is deleted with \fIttfDelete\fR.
+.PP
+The "idx" argument specifies the font to load from a collection - the first
+.PP
 font is number \fB0\fR.  Once created, you can call the \fIttfGetNumFonts\fR
 function to determine whether the loaded font file is a collection with more
 than one font.
@@ -410,4 +457,4 @@ typedef enum ttf_weight_e ttf_weight_t;
 Michael R Sweet
 .SH COPYRIGHT
 .PP
-Copyright (c) 2018-2024 by Michael R Sweet
+Copyright (c) 2018-2025 by Michael R Sweet

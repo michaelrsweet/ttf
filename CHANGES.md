@@ -1,9 +1,10 @@
 Changes in TTF
 ==============
 
-v1.0.1 - YYYY-MM-DD
+v1.1.0 - YYYY-MM-DD
 -------------------
 
+- Added `ttfCreateData` function to create a font from a memory buffer.
 - Added guards against fonts claiming they have 0 characters.
 - Added stddef.h include to ttf.h.
 - Fixed potential heap/integer overflow issues in the TrueType cmap code.
