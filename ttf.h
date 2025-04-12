@@ -81,7 +81,7 @@ typedef struct ttf_rect_s	// Bounding rectangle
 //
 
 extern ttf_t		*ttfCreate(const char *filename, size_t idx, ttf_err_cb_t err_cb, void *err_data);
-extern ttf_t		*ttfCreateData(void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
+extern ttf_t		*ttfCreateData(const void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 extern void		ttfDelete(ttf_t *font);
 extern int		ttfGetAscent(ttf_t *font);
 extern ttf_rect_t	*ttfGetBounds(ttf_t *font, ttf_rect_t *bounds);

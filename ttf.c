@@ -187,7 +187,7 @@ struct _ttf_s
   _ttf_read_cb_t read_cb;		// Read callback
   _ttf_seek_cb_t seek_cb;		// Seek callback
   int		file_fd;		// File descriptor for ttfCreate
-  char		*data;			// Font data for ttfCreateData
+  const char	*data;			// Font data for ttfCreateData
   size_t	data_size;		// Size of font data for ttfCreateData
   size_t	data_offset;		// Offset within input
   size_t	idx;			// Font number in file
@@ -292,7 +292,7 @@ typedef struct _ttf_off_post_s		// PostScript information
 //
 
 static char	*copy_name(ttf_t *font, unsigned name_id);
-static ttf_t	*create_font(const char *filename, void *data, size_t datasize, size_t idx, ttf_err_cb_t err_cb, void *err_data);
+static ttf_t	*create_font(const char *filename, const void *data, size_t datasize, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 static void	errorf(ttf_t *font, const char *message, ...) TTF_FORMAT_ARGS(2,3);
 static size_t	fd_read_cb(ttf_t *font, void *buffer, size_t bytes);
 static bool	fd_seek_cb(ttf_t *font, size_t offset);
@@ -387,7 +387,7 @@ ttfCreate(const char   *filename,	// I - Filename
 //
 
 ttf_t *					// O - New font object
-ttfCreateData(void         *data,	// I - Buffer
+ttfCreateData(const void   *data,	// I - Buffer
               size_t       datasize,	// I - Size of buffer in bytes
 	      size_t       idx,		// I - Font number to create in collection (0-based)
 	      ttf_err_cb_t err_cb,	// I - Error callback or `NULL` to log to stderr
@@ -934,7 +934,7 @@ copy_name(ttf_t    *font,		// I - Font
 
 static ttf_t *
 create_font(const char   *filename,	// I - Filename of `NULL`
-            void         *data,		// I - Data pointer or `NULL`
+            const void   *data,		// I - Data pointer or `NULL`
             size_t       datasize,	// I - Size of data or 0
             size_t       idx,		// I - Font index
             ttf_err_cb_t err_cb,	// I - Error callback function
@@ -977,7 +977,7 @@ create_font(const char   *filename,	// I - Filename of `NULL`
   {
     // Read from memory...
     font->file_fd   = -1;
-    font->data      = (char *)data;
+    font->data      = (const char *)data;
     font->data_size = datasize;
     font->read_cb   = mem_read_cb;
     font->seek_cb   = mem_seek_cb;
