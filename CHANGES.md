@@ -8,6 +8,7 @@ v1.1.0 - YYYY-MM-DD
 - Added guards against fonts claiming they have 0 characters.
 - Added stddef.h include to ttf.h.
 - Fixed potential heap/integer overflow issues in the TrueType cmap code.
+- Fixed underflow in TrueType cmap code.
 
 
 v1.0.0 - 2024-08-19
