@@ -293,6 +293,11 @@ test_font(const char *filename)		// I - Font filename
     errors ++;
   }
 
+  printf("ttfGetWidth(US ASCII): [%d", intvalue);
+  for (i = 33; i < 127; i ++)
+    printf(",%d", ttfGetWidth(font, i));
+  puts("]");
+
   fputs("ttfGetXHeight: ", stdout);
   if ((intvalue = ttfGetXHeight(font)) > 0)
   {
