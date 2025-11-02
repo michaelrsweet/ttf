@@ -1,0 +1,214 @@
+#
+# Unit test makefile for TTF library.
+#
+#     https://github.com/michaelrsweet/ttf
+#
+# Copyright © 2018-2025 by Michael R Sweet.
+#
+# Licensed under Apache License v2.0.  See the file "LICENSE" for more
+# information.
+#
+
+# This is a POSIX makefile
+.POSIX:
+
+
+# Build silently
+.SILENT:
+
+
+# Version numbers...
+TTF_VERSION		=	@TTF_VERSION@
+TTF_VERSION_MAJOR	=	@TTF_VERSION_MAJOR@
+TTF_VERSION_MINOR	=	@TTF_VERSION_MINOR@
+
+
+# Programs and options...
+AR		=	@AR@
+ARFLAGS		=	@ARFLAGS@
+CC		=	@CC@
+CFLAGS		=	@CFLAGS@ $(CPPFLAGS) $(OPTIM) $(WARNINGS)
+CODE_SIGN	=	@CODE_SIGN@
+CODESIGN_IDENTITY =	-
+CPPFLAGS	=	'-DTTF_VERSION="$(TTF_VERSION)"' @CPPFLAGS@
+CSFLAGS		=	-s "$(CODESIGN_IDENTITY)" @CSFLAGS@ --timestamp
+DOCFLAGS	=	--author "Michael R Sweet" \
+			--copyright "Copyright (c) 2018-2025 by Michael R Sweet" \
+			--docversion $(TTF_VERSION)
+DSOFLAGS	=	@DSOFLAGS@ $(CFLAGS)
+INSTALL		=	@INSTALL@
+LDFLAGS		=	@LDFLAGS@ $(OPTIM)
+LIBS		=	@LIBS@ -lm
+LN		=	@LN@
+OPTIM		=	@OPTIM@
+RANLIB		=	@RANLIB@
+RM		=	@RM@ -f
+RMDIR		=	@RMDIR@
+SHELL		=	/bin/sh
+WARNINGS	=	@WARNINGS@
+
+
+# Targets
+LIBTTF		=	@LIBTTF@
+LIBTTF_STATIC	=	@LIBTTF_STATIC@
+
+
+# Directories...
+bindir		=	@bindir@
+datadir		=	@datadir@
+datarootdir	=	@datarootdir@
+exec_prefix	=	@exec_prefix@
+includedir	=	@includedir@
+infodir		=	@infodir@
+libdir		=	@libdir@
+libexecdir	=	@libexecdir@
+localstatedir	=	@localstatedir@
+mandir		=	@mandir@
+oldincludedir	=	@oldincludedir@
+prefix		=	@prefix@
+sbindir		=	@sbindir@
+sharedstatedir	=	@sharedstatedir@
+srcdir		=	@srcdir@
+sysconfdir	=	@sysconfdir@
+top_srcdir	=	@top_srcdir@
+
+BUILDROOT	=	$(DSTROOT)$(RPM_BUILD_ROOT)$(DESTDIR)
+
+
+# Build commands...
+.SUFFIXES:	.c .h .o
+.c.o:
+	echo Compiling $<...
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+# Files
+HEADERS		=	\
+			ttf.h
+LIBOBJS		=	\
+			ttf-cache.o \
+			ttf-file.o
+OBJS		=	\
+			$(LIBOBJS) \
+			testttf.o
+TARGETS		=	\
+			$(LIBTTF) \
+			$(LIBTTF_STATIC) \
+			testttf
+DOCFILES	=	\
+			ttf.html \
+			ttf-512.png \
+			LICENSE \
+			NOTICE
+
+
+# Build everything
+all:		$(TARGETS)
+
+
+# Clean all build files
+clean:
+	rm -f $(TARGETS) $(OBJS)
+
+
+# Install the library and header file
+install:	all
+	echo Installing header file to $(BUILDROOT)$(includedir)...
+	$(INSTALL) -d -m 755 $(BUILDROOT)$(includedir)
+	for file in $(HEADERS); do \
+		$(INSTALL) -c -m 644 $$file $(BUILDROOT)$(includedir); \
+	done
+	echo Installing library files to $(BUILDROOT)$(libdir)...
+	$(INSTALL) -d -m 755 $(BUILDROOT)$(libdir)
+	if test "x$(LIBTTF_STATIC)" != x; then \
+		$(INSTALL) -c -m 644 $(LIBTTF_STATIC) $(BUILDROOT)$(libdir); \
+		$(RANLIB) $(BUILDROOT)$(libdir)/$(LIBTTF_STATIC); \
+	fi
+	if test "x$(LIBTTF)" = xlibttf.so.1; then \
+		$(INSTALL) -c -m 755 libttf.so.1 $(BUILDROOT)$(libdir); \
+		ln -sf libttf.so.1 $(BUILDROOT)$(libdir)/libttf.so; \
+	elif test "x$(LIBTTF)" = xlibttf.1.dylib; then \
+		$(INSTALL) -c -m 755 libttf.1.dylib $(BUILDROOT)$(libdir); \
+		codesign -s "$(CODESIGN_IDENTITY)" -o runtime --timestamp $(BUILDROOT)$(libdir)/libttf.1.dylib; \
+		ln -sf libttf.1.dylib $(BUILDROOT)$(libdir)/libttf.dylib; \
+	else \
+		$(INSTALL) -c -m 644 $(LIBTTF) $(BUILDROOT)$(libdir); \
+		$(RANLIB) $(BUILDROOT)$(libdir)/$(LIBTTF); \
+	fi
+	echo Installing pkg-config files to $(BUILDROOT)$(libdir)/pkgconfig...
+	$(INSTALL) -d -m 755 $(BUILDROOT)$(libdir)/pkgconfig
+	$(INSTALL) -c -m 644 ttf.pc $(BUILDROOT)$(libdir)/pkgconfig
+	echo Installing documentation to $(BUILDROOT)$(datadir)/doc/ttf...
+	$(INSTALL) -d -m 755 $(BUILDROOT)$(datadir)/doc/ttf
+	for file in $(DOCFILES); do \
+		$(INSTALL) -c -m 644 $$file $(BUILDROOT)$(datadir)/doc/ttf; \
+	done
+	echo Installing man page to $(BUILDROOT)$(mandir)/man3...
+	$(INSTALL) -d -m 755 $(BUILDROOT)$(mandir)/man3
+	$(INSTALL) -c -m 644 ttf.3 $(BUILDROOT)$(mandir)/man3
+
+
+# Run the unit tests
+test:		testttf
+	./testttf
+
+
+# Analyze code with the Clang static analyzer <https://clang-analyzer.llvm.org>
+clang:
+	clang $(CPPFLAGS) --analyze $(OBJS:.o=.c) 2>clang.log
+	rm -rf $(OBJS:.o=.plist)
+	test -s clang.log && (echo "$(GHA_ERROR)Clang detected issues."; echo ""; cat clang.log; exit 1) || exit 0
+
+
+# Scan the code using Cppcheck <http://cppcheck.sourceforge.net>
+cppcheck:
+	cppcheck --template=gcc --addon=cert.py --suppress=cert-MSC24-C --suppress=cert-INT31-c --suppress=cert-EXP05-C --suppress=cert-API01-C $(OBJS:.o=.c) 2>cppcheck.log
+	@test -s cppcheck.log && (echo "$(GHA_ERROR)Cppcheck detected issues."; echo ""; cat cppcheck.log; exit 1) || exit 0
+
+
+# Unit test program
+testttf:	libttf.a testttf.o
+	$(CC) $(LDFLAGS) -o testttf testttf.o libttf.a $(LIBS)
+
+
+# Library
+libttf.a:	$(LIBOBJS)
+	$(AR) $(ARFLAGS) $@ $(LIBOBJS)
+	$(RANLIB) $@
+
+
+libttf.so.1:		$(LIBOBJS)
+	echo Linking $@...
+	$(CC) $(DSOFLAGS) -shared -o $@ -Wl,-soname,$@ $(LIBOBJS) $(LIBS)
+
+libttf.1.dylib:	$(LIBOBJS)
+	echo Linking $@...
+	$(CC) $(DSOFLAGS) -dynamiclib -o $@ -install_name $(libdir)/$@ -current_version $(TTF_VERSION_MAJOR).$(TTF_VERSION_MINOR) -compatibility_version 1.0 $(LIBOBJS) $(LIBS)
+
+
+# ttf1.def (Windows DLL exports file...)
+#
+# I'd love to use __declspec(dllexport) but MS puts it before the function
+# declaration instead of after like everyone else, and it breaks Codedoc and
+# other tools I rely on...
+ttf1.def: $(LIBOBJS) Makefile
+	echo Generating $@...
+	echo "LIBRARY ttf1" >$@
+	echo "VERSION $(TTF_VERSION_MAJOR).$(TTF_VERSION_MINOR)" >>$@
+	echo "EXPORTS" >>$@
+	nm $(LIBOBJS) 2>/dev/null | grep "T _" | awk '{print $$3}' | \
+		grep -v '^_ttf' | sed -e '1,$$s/^_//' | sort >>$@
+
+
+# Make documentation
+doc:
+	codedoc $(DOCFLAGS) --title "TTF v$(TTF_VERSION) Manual" \
+		--coverimage ttf-512.png --body ttf.md \
+		ttf.xml $(HEADERS) $(LIBOBJS:.o=.c) >ttf.html
+	codedoc $(DOCFLAGS) --title "ttf - functions" --man ttf --section 3 --body ttf.md ttf.xml >ttf.3
+	$(RM) ttf.xml
+
+
+# Dependencies
+$(OBJS):	ttf.h Makefile
+testttf.o:	test.h

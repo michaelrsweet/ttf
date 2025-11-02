@@ -25,11 +25,15 @@ extern "C" {
 
 typedef struct _ttf_s ttf_t;	// Font object
 
+typedef struct _ttf_cache_s ttf_cache_t;
+				// Font cache
+
 typedef void (*ttf_err_cb_t)(void *data, const char *message);
 				// Font error callback
 
 typedef enum ttf_stretch_e	// Font stretch
 {
+  TTF_STRETCH_UNSPEC = -1,	// Unspecified
   TTF_STRETCH_NORMAL,		// normal
   TTF_STRETCH_ULTRA_CONDENSED,	// ultra-condensed
   TTF_STRETCH_EXTRA_CONDENSED,	// extra-condensed
@@ -43,6 +47,7 @@ typedef enum ttf_stretch_e	// Font stretch
 
 typedef enum ttf_style_e	// Font style
 {
+  TTF_STYLE_UNSPEC = -1,	// Unspecified
   TTF_STYLE_NORMAL,		// Normal font
   TTF_STYLE_ITALIC,		// Italic font
   TTF_STYLE_OBLIQUE		// Oblique (angled) font
@@ -50,12 +55,14 @@ typedef enum ttf_style_e	// Font style
 
 typedef enum ttf_variant_e	// Font variant
 {
+  TTF_VARIANT_UNSPEC = -1,	// Unspecified
   TTF_VARIANT_NORMAL,		// Normal font
   TTF_VARIANT_SMALL_CAPS	// Font whose lowercase letters are small capitals
 } ttf_variant_t;
 
 typedef enum ttf_weight_e	// Font weight
 {
+  TTF_WEIGHT_UNSPEC = -1,	// Unspecified
   TTF_WEIGHT_100 = 100,		// Weight 100 (Thin)
   TTF_WEIGHT_200 = 200,		// Weight 200 (Extra/Ultra-Light)
   TTF_WEIGHT_300 = 300,		// Weight 300 (Light)
@@ -80,9 +87,22 @@ typedef struct ttf_rect_s	// Bounding rectangle
 // Functions...
 //
 
+extern void             ttfCacheDelete(ttf_cache_t *tc);
+extern ttf_t            *ttfCacheFind(ttf_cache_t *tc, const char *family, ttf_style_t style, ttf_weight_t weight, ttf_stretch_t stretch, ttf_variant_t variant);
+extern const char       *ttfCacheGetFilename(ttf_cache_t *tc, size_t n);
+extern const char       *ttfCacheGetFamily(ttf_cache_t *tc, size_t n);
+extern ttf_stretch_t    ttfCacheGetStretch(ttf_cache_t *tc, size_t n);
+extern ttf_style_t      ttfCacheGetStyle(ttf_cache_t *tc, size_t n);
+extern ttf_variant_t    ttfCacheGetVariant(ttf_cache_t *tc, size_t n);
+extern ttf_weight_t     ttfCacheGetWeight(ttf_cache_t *tc, size_t n);
+extern ttf_t            *ttfCacheGetFont(ttf_cache_t *tc, size_t n);
+extern size_t           ttfCacheGetNumFonts(ttf_cache_t *tc);
+extern ttf_cache_t      *ttfCacheNew(const char *appname);
 extern ttf_t		*ttfCreate(const char *filename, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 extern ttf_t		*ttfCreateData(const void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
+
 extern void		ttfDelete(ttf_t *font);
+
 extern int		ttfGetAscent(ttf_t *font);
 extern ttf_rect_t	*ttfGetBounds(ttf_t *font, ttf_rect_t *bounds);
 extern const int	*ttfGetCMap(ttf_t *font, size_t *num_cmap);
@@ -91,6 +111,7 @@ extern const char	*ttfGetCopyright(ttf_t *font);
 extern int		ttfGetDescent(ttf_t *font);
 extern ttf_rect_t	*ttfGetExtents(ttf_t *font, float size, const char *s, ttf_rect_t *extents);
 extern const char	*ttfGetFamily(ttf_t *font);
+extern const char       *ttfGetFilename(ttf_t *ttf);
 extern float		ttfGetItalicAngle(ttf_t *font);
 extern int		ttfGetMaxChar(ttf_t *font);
 extern int		ttfGetMinChar(ttf_t *font);
@@ -102,6 +123,7 @@ extern const char	*ttfGetVersion(ttf_t *font);
 extern int		ttfGetWidth(ttf_t *font, int ch);
 extern ttf_weight_t	ttfGetWeight(ttf_t *font);
 extern int		ttfGetXHeight(ttf_t *font);
+
 extern bool		ttfIsFixedPitch(ttf_t *font);
 
 

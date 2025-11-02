@@ -1,5 +1,5 @@
 //
-// Implementation file for TTF library
+// Font file code for TTF library
 //
 //     https://github.com/michaelrsweet/ttf
 //

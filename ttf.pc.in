@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: ttf
+Description: TrueType/OpenType Font Library
+Version: @TTF_VERSION@
+URL: https://www.msweet.org/ttf
+Cflags: -I${includedir}
+Libs: -L${libdir} -lttf
