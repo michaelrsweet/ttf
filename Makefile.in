@@ -211,4 +211,5 @@ doc:
 
 # Dependencies
 $(OBJS):	ttf.h Makefile
+$(LIBOBJS):	ttf-private.h
 testttf.o:	test.h

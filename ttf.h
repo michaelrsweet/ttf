@@ -53,13 +53,6 @@ typedef enum ttf_style_e	// Font style
   TTF_STYLE_OBLIQUE		// Oblique (angled) font
 } ttf_style_t;
 
-typedef enum ttf_variant_e	// Font variant
-{
-  TTF_VARIANT_UNSPEC = -1,	// Unspecified
-  TTF_VARIANT_NORMAL,		// Normal font
-  TTF_VARIANT_SMALL_CAPS	// Font whose lowercase letters are small capitals
-} ttf_variant_t;
-
 typedef enum ttf_weight_e	// Font weight
 {
   TTF_WEIGHT_UNSPEC = -1,	// Unspecified
@@ -87,16 +80,16 @@ typedef struct ttf_rect_s	// Bounding rectangle
 // Functions...
 //
 
-extern void             ttfCacheDelete(ttf_cache_t *tc);
-extern ttf_t            *ttfCacheFind(ttf_cache_t *tc, const char *family, ttf_style_t style, ttf_weight_t weight, ttf_stretch_t stretch, ttf_variant_t variant);
-extern const char       *ttfCacheGetFilename(ttf_cache_t *tc, size_t n);
-extern const char       *ttfCacheGetFamily(ttf_cache_t *tc, size_t n);
-extern ttf_stretch_t    ttfCacheGetStretch(ttf_cache_t *tc, size_t n);
-extern ttf_style_t      ttfCacheGetStyle(ttf_cache_t *tc, size_t n);
-extern ttf_variant_t    ttfCacheGetVariant(ttf_cache_t *tc, size_t n);
-extern ttf_weight_t     ttfCacheGetWeight(ttf_cache_t *tc, size_t n);
-extern ttf_t            *ttfCacheGetFont(ttf_cache_t *tc, size_t n);
-extern size_t           ttfCacheGetNumFonts(ttf_cache_t *tc);
+extern void		ttfCacheAdd(ttf_cache_t *cache, ttf_t *font, const char *filename);
+extern void             ttfCacheDelete(ttf_cache_t *cache);
+extern ttf_t            *ttfCacheFind(ttf_cache_t *cache, const char *family, ttf_style_t style, ttf_weight_t weight, ttf_stretch_t stretch);
+extern const char       *ttfCacheGetFilename(ttf_cache_t *cache, size_t n);
+extern const char       *ttfCacheGetFamily(ttf_cache_t *cache, size_t n);
+extern ttf_stretch_t    ttfCacheGetStretch(ttf_cache_t *cache, size_t n);
+extern ttf_style_t      ttfCacheGetStyle(ttf_cache_t *cache, size_t n);
+extern ttf_weight_t     ttfCacheGetWeight(ttf_cache_t *cache, size_t n);
+extern ttf_t            *ttfCacheGetFont(ttf_cache_t *cache, size_t n);
+extern size_t           ttfCacheGetNumFonts(ttf_cache_t *cache);
 extern ttf_cache_t      *ttfCacheNew(const char *appname);
 extern ttf_t		*ttfCreate(const char *filename, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 extern ttf_t		*ttfCreateData(const void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
