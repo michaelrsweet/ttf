@@ -1,4 +1,4 @@
-.TH ttf 3 "ttf - functions" "2025-04-10" "ttf - functions"
+.TH ttf 3 "ttf - functions" "2025-11-05" "ttf - functions"
 .SH NAME
 ttf \- ttf - functions
 .SH Introduction
@@ -20,11 +20,12 @@ Use the pkg\-config command to get the proper compiler and linker options:
     
     cc \-o myprogram `pkg\-config \-\-cflags ttf` myprogram.c `pkg\-config \-\-libs ttf`
 .fi
+.SS Opening Fonts
 .PP
 The ttfCreate function opens a font file, returning a pointer to a ttf_t object:
 .nf
 
-    ttf_t *font = ttfCreate("FILENAME.ttf", /*idx*/0, /*err_cb*/NULL, /*err_data*/NULL);
+    ttf_t *font = ttfCreate("FILENAME.ttf", /*idx*/0, /*err_cb*/NULL, /*err_cbdata*/NULL);
 .fi
 .PP
 The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the ttfDelete function to free the memory that was used.
@@ -32,8 +33,50 @@ The returned pointer can be used with the other TTF library functions to provide
 If you already have a font file loaded in memory, the ttfCreateData function can be used to create a ttf_t object from the buffer:
 .nf
 
-    ttf_t *font = ttfCreateData(data, datasize, /*idx*/0, /*err_cb*/NULL, /*err_data*/NULL);
+    ttf_t *font = ttfCreateData(data, datasize, /*idx*/0, /*err_cb*/NULL, /*err_cbdata*/NULL);
 .fi
+.PP
+The error callback function ("err_cb") and data ("err_cbdata") allow you to specify a function that will receive any error messages that are ordinarily displayed to the standard error file. The callback receives the data pointer and a message string, for example the following callback will display the error message to the standard output file instead:
+.nf
+
+    void
+    my_error_cb(void *err_cbdata, const char *message)
+    {
+      (void)err_cbdata;
+    
+      puts(message);
+    }
+.fi
+.SS Accessing System and User Fonts
+.PP
+TTF also provides a ttf_cache_t object representing a cache of available fonts. The [`ttfCacheCreate] function creates a cache of fonts that are provided by the operating system and/or installed by the user:
+.nf
+
+    ttf_cache_t *cache = ttfCacheCreate("my\-application\-name", /*err_cb*/NULL, /*err_cbdata*/NULL);
+.fi
+.PP
+The error callback function and data are the same as you would provide to the ttfCreate or ttfCreateData functions.
+.PP
+Once loaded, you can access the available fonts using the ttfCacheFind or ttfCacheGetFont functions, for example:
+.nf
+
+    // Find Helvetica
+    ttf_t *font = ttfCacheFind(cache, "Helvetica", TTF_STYLE_NORMAL, TTF_WEIGHT_400, TTF_STRETCH_NORMAL);
+    
+    // List all fonts
+    size_t i, num_fonts = ttfCacheGetNumFonts(cache);
+    
+    for (i = 0; i < num_fonts; i ++)
+    {
+      font = ttfCacheGetFont(cache, i);
+    
+      puts(ttfGetFamily(font));
+    }
+.fi
+.PP
+.B Note:
+ Do not call ttfDelete on fonts obtained from the cache. Instead, call ttfCacheDelete to free all fonts in the cache.
+
 
 .SH ENUMERATIONS
 .SS ttf_stretch_e
@@ -74,6 +117,10 @@ ultra-condensed
 TTF_STRETCH_ULTRA_EXPANDED
 .br
 ultra-expanded
+.TP 5
+TTF_STRETCH_UNSPEC
+.br
+Unspecified
 .SS ttf_style_e
 Font style
 .TP 5
@@ -88,16 +135,10 @@ Normal font
 TTF_STYLE_OBLIQUE
 .br
 Oblique (angled) font
-.SS ttf_variant_e
-Font variant
 .TP 5
-TTF_VARIANT_NORMAL
+TTF_STYLE_UNSPEC
 .br
-Normal font
-.TP 5
-TTF_VARIANT_SMALL_CAPS
-.br
-Font whose lowercase letters are small capitals
+Unspecified
 .SS ttf_weight_e
 Font weight
 .TP 5
@@ -136,7 +177,125 @@ Weight 800 (Extra/Ultra-Bold)
 TTF_WEIGHT_900
 .br
 Weight 900 (Black/Heavy)
+.TP 5
+TTF_WEIGHT_UNSPEC
+.br
+Unspecified
 .SH FUNCTIONS
+.SS ttfCacheAdd
+Add a font to the cache.
+.PP
+.nf
+void ttfCacheAdd (
+    ttf_cache_t *cache,
+    ttf_t *font,
+    const char *filename
+);
+.fi
+.SS ttfCacheCreate
+Create a cache of system and user fonts.
+.PP
+.nf
+ttf_cache_t * ttfCacheCreate (
+    const char *appname,
+    ttf_err_cb_t err_cb,
+    void *err_cbdata
+);
+.fi
+.PP
+This function creates a cache of system and user fonts, loading any
+previously cached results for the named application.
+.SS ttfCacheDelete
+Delete a cache.
+.PP
+.nf
+void ttfCacheDelete (
+    ttf_cache_t *cache
+);
+.fi
+.SS ttfCacheFind
+Find a font in the cache.
+.PP
+.nf
+ttf_t * ttfCacheFind (
+    ttf_cache_t *cache,
+    const char *family,
+    ttf_style_t style,
+    ttf_weight_t weight,
+    ttf_stretch_t stretch
+);
+.fi
+.SS ttfCacheGetFamily
+Get the font family at index N.
+.PP
+.nf
+const char * ttfCacheGetFamily (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetFilename
+Get the font filename  at index N.
+.PP
+.nf
+const char * ttfCacheGetFilename (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetFont
+Get the font at index N
+.PP
+.nf
+ttf_t * ttfCacheGetFont (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetIndex
+Get the font index for the composite font at index N.
+.PP
+.nf
+size_t  ttfCacheGetIndex (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetNumFonts
+Get the number of fonts in the cache.
+.PP
+.nf
+size_t  ttfCacheGetNumFonts (
+    ttf_cache_t *cache
+);
+.fi
+.SS ttfCacheGetStretch
+Get the font stretch at index N.
+.PP
+.nf
+ttf_stretch_t  ttfCacheGetStretch (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetStyle
+Get the font style at index N.
+.PP
+.nf
+ttf_style_t  ttfCacheGetStyle (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
+.SS ttfCacheGetWeight
+Get the font weight at index N.
+.PP
+.nf
+ttf_weight_t  ttfCacheGetWeight (
+    ttf_cache_t *cache,
+    size_t n
+);
+.fi
 .SS ttfCreate
 Create a new font object for the named font file.
 .PP
@@ -145,7 +304,7 @@ ttf_t * ttfCreate (
     const char *filename,
     size_t idx,
     ttf_err_cb_t err_cb,
-    void *err_data
+    void *err_cbdata
 );
 .fi
 .PP
@@ -158,13 +317,13 @@ font is number \fB0\fR.  Once created, you can call the \fIttfGetNumFonts\fR
 function to determine whether the loaded font file is a collection with more
 than one font.
 .PP
-The "err_cb" and "err_data" arguments specify a callback function and data
+The "err_cb" and "err_cbdata" arguments specify a callback function and data
 pointer for receiving error messages.  If \fBNULL\fR, errors are sent to the
 \fBstderr\fR file.  The callback function receives the data pointer and a text
 message string, for example:
 .PP
 .nf
-    void my_err_cb(void *err_data, const char *message)
+    void my_err_cb(void *err_cbdata, const char *message)
     {
       fprintf(stderr, "ERROR: %sn", message);
     }
@@ -176,11 +335,11 @@ Create a new font object from a memory buffer.
 .PP
 .nf
 ttf_t * ttfCreateData (
-    void *data,
+    const void *data,
     size_t datasize,
     size_t idx,
     ttf_err_cb_t err_cb,
-    void *err_data
+    void *err_cbdata
 );
 .fi
 .PP
@@ -199,13 +358,13 @@ font is number \fB0\fR.  Once created, you can call the \fIttfGetNumFonts\fR
 function to determine whether the loaded font file is a collection with more
 than one font.
 .PP
-The "err_cb" and "err_data" arguments specify a callback function and data
+The "err_cb" and "err_cbdata" arguments specify a callback function and data
 pointer for receiving error messages.  If \fBNULL\fR, errors are sent to the
 \fBstderr\fR file.  The callback function receives the data pointer and a text
 message string, for example:
 .PP
 .nf
-    void my_err_cb(void *err_data, const char *message)
+    void my_err_cb(void *err_cbdata, const char *message)
     {
       fprintf(stderr, "ERROR: %sn", message);
     }
@@ -410,6 +569,12 @@ struct ttf_rect_s
 };
 .fi
 .SH TYPES
+.SS ttf_cache_t
+Font cache
+.PP
+.nf
+typedef struct _ttf_cache_s ttf_cache_t;
+.fi
 .SS ttf_err_cb_t
 Font error callback
 .PP
@@ -439,12 +604,6 @@ Font object
 .PP
 .nf
 typedef struct _ttf_s ttf_t;
-.fi
-.SS ttf_variant_t
-Font variant
-.PP
-.nf
-typedef enum ttf_variant_e ttf_variant_t;
 .fi
 .SS ttf_weight_t
 Font weight

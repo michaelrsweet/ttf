@@ -92,13 +92,16 @@ blockquote :first-child {
   margin-bottom: 0;
 }
 p code, li code, p.code, pre, ul.code li {
+  background: rgba(127,127,127,0.25);
+  border: thin dotted gray;
   font-family: monospace;
   hyphens: manual;
   -webkit-hyphens: manual;
 }
+p code, li code {
+  padding: 0 5px;
+}
 p.code, pre, ul.code li {
-  background: rgba(127,127,127,0.25);
-  border: thin dotted gray;
   padding: 10px;
   page-break-inside: avoid;
 }
@@ -217,6 +220,21 @@ span.string {
   a:link:hover, a:visited:hover, a:active {
     color: #f06;
   }
+  span.comment {
+    color: #7c7;
+  }
+  span.directive {
+    color: red;
+  }
+  span.number {
+    color: #c64;
+  }
+  span.reserved {
+    color: #77f;
+  }
+  span.string {
+    color: #f7f;
+  }
 }
 /* Show contents on left side in web browser */
 @media screen and (min-width: 800px) {
@@ -260,8 +278,22 @@ span.string {
 <ul class="contents">
 <li><a href="#introduction">Introduction</a><ul class="subcontents">
 <li><a href="#using-the-ttf-library">Using the TTF Library</a></li>
+<li><a href="#opening-fonts">Opening Fonts</a></li>
+<li><a href="#accessing-system-and-user-fonts">Accessing System and User Fonts</a></li>
 </ul></li>
 <li><a href="#FUNCTIONS">Functions</a><ul class="subcontents">
+<li><a href="#ttfCacheAdd">ttfCacheAdd</a></li>
+<li><a href="#ttfCacheCreate">ttfCacheCreate</a></li>
+<li><a href="#ttfCacheDelete">ttfCacheDelete</a></li>
+<li><a href="#ttfCacheFind">ttfCacheFind</a></li>
+<li><a href="#ttfCacheGetFamily">ttfCacheGetFamily</a></li>
+<li><a href="#ttfCacheGetFilename">ttfCacheGetFilename</a></li>
+<li><a href="#ttfCacheGetFont">ttfCacheGetFont</a></li>
+<li><a href="#ttfCacheGetIndex">ttfCacheGetIndex</a></li>
+<li><a href="#ttfCacheGetNumFonts">ttfCacheGetNumFonts</a></li>
+<li><a href="#ttfCacheGetStretch">ttfCacheGetStretch</a></li>
+<li><a href="#ttfCacheGetStyle">ttfCacheGetStyle</a></li>
+<li><a href="#ttfCacheGetWeight">ttfCacheGetWeight</a></li>
 <li><a href="#ttfCreate">ttfCreate</a></li>
 <li><a href="#ttfCreateData">ttfCreateData</a></li>
 <li><a href="#ttfDelete">ttfDelete</a></li>
@@ -287,12 +319,12 @@ span.string {
 <li><a href="#ttfIsFixedPitch">ttfIsFixedPitch</a></li>
 </ul></li>
 <li><a href="#TYPES">Data Types</a><ul class="subcontents">
+<li><a href="#ttf_cache_t">ttf_cache_t</a></li>
 <li><a href="#ttf_err_cb_t">ttf_err_cb_t</a></li>
 <li><a href="#ttf_rect_t">ttf_rect_t</a></li>
 <li><a href="#ttf_stretch_t">ttf_stretch_t</a></li>
 <li><a href="#ttf_style_t">ttf_style_t</a></li>
 <li><a href="#ttf_t">ttf_t</a></li>
-<li><a href="#ttf_variant_t">ttf_variant_t</a></li>
 <li><a href="#ttf_weight_t">ttf_weight_t</a></li>
 </ul></li>
 <li><a href="#STRUCTURES">Structures</a><ul class="subcontents">
@@ -301,7 +333,6 @@ span.string {
 <li><a href="#ENUMERATIONS">Enumerations</a><ul class="subcontents">
 <li><a href="#ttf_stretch_e">ttf_stretch_e</a></li>
 <li><a href="#ttf_style_e">ttf_style_e</a></li>
-<li><a href="#ttf_variant_e">ttf_variant_e</a></li>
 <li><a href="#ttf_weight_e">ttf_weight_e</a></li>
 </ul></li>
 </ul>
@@ -319,18 +350,211 @@ LIBS = `pkg-config --libs ttf`
 
 cc -o myprogram `pkg-config --cflags ttf` myprogram.c `pkg-config --libs ttf`
 </code></pre>
+<h3 class="title" id="opening-fonts">Opening Fonts</h3>
 <p>The <a href="#ttfCreate"><code>ttfCreate</code></a> function opens a font file, returning a pointer to a <code>ttf_t</code> object:</p>
-<pre><code class="language-c">ttf_t *font = ttfCreate(<span class="string">&quot;FILENAME.ttf&quot;</span>, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_data*/</span>NULL);
+<pre><code class="language-c">ttf_t *font = ttfCreate(<span class="string">&quot;FILENAME.ttf&quot;</span>, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_cbdata*/</span>NULL);
 </code></pre>
 <p>The returned pointer can be used with the other TTF library functions to provide various bits of metadata and measure the bounds of a given string of Unicode text. Once you are done with the font data, use the <a href="#ttfDelete"><code>ttfDelete</code></a> function to free the memory that was used.</p>
 <p>If you already have a font file loaded in memory, the <a href="#ttfCreateData"><code>ttfCreateData</code></a> function can be used to create a <code>ttf_t</code> object from the buffer:</p>
-<pre><code class="language-c">ttf_t *font = ttfCreateData(data, datasize, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_data*/</span>NULL);
+<pre><code class="language-c">ttf_t *font = ttfCreateData(data, datasize, <span class="comment">/*idx*/</span><span class="number">0</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_cbdata*/</span>NULL);
 </code></pre>
+<p>The error callback function (&quot;err_cb&quot;) and data (&quot;err_cbdata&quot;) allow you to specify a function that will receive any error messages that are ordinarily displayed to the standard error file. The callback receives the data pointer and a message string, for example the following callback will display the error message to the standard output file instead:</p>
+<pre><code class="language-c"><span class="reserved">void</span>
+my_error_cb(<span class="reserved">void</span> *err_cbdata, <span class="reserved">const</span> <span class="reserved">char</span> *message)
+{
+  (<span class="reserved">void</span>)err_cbdata;
+
+  puts(message);
+}
+</code></pre>
+<h3 class="title" id="accessing-system-and-user-fonts">Accessing System and User Fonts</h3>
+<p>TTF also provides a <code>ttf_cache_t</code> object representing a cache of available fonts. The [`ttfCacheCreate] function creates a cache of fonts that are provided by the operating system and/or installed by the user:</p>
+<pre><code class="language-c">ttf_cache_t *cache = ttfCacheCreate(<span class="string">&quot;my-application-name&quot;</span>, <span class="comment">/*err_cb*/</span>NULL, <span class="comment">/*err_cbdata*/</span>NULL);
+</code></pre>
+<p>The error callback function and data are the same as you would provide to the <a href="#ttfCreate"><code>ttfCreate</code></a> or <a href="#ttfCreateData"><code>ttfCreateData</code></a> functions.</p>
+<p>Once loaded, you can access the available fonts using the <a href="#ttfCacheFind"><code>ttfCacheFind</code></a> or <a href="#ttfCacheGetFont"><code>ttfCacheGetFont</code></a> functions, for example:</p>
+<pre><code class="language-c"><span class="comment">// Find Helvetica</span>
+ttf_t *font = ttfCacheFind(cache, <span class="string">&quot;Helvetica&quot;</span>, TTF_STYLE_NORMAL, TTF_WEIGHT_400, TTF_STRETCH_NORMAL);
+
+<span class="comment">// List all fonts</span>
+size_t i, num_fonts = ttfCacheGetNumFonts(cache);
+
+<span class="reserved">for</span> (i = <span class="number">0</span>; i &lt; num_fonts; i ++)
+{
+  font = ttfCacheGetFont(cache, i);
+
+  puts(ttfGetFamily(font));
+}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Do not call <a href="#ttfDelete"><code>ttfDelete</code></a> on fonts obtained from the cache. Instead, call <a href="#ttfCacheDelete"><code>ttfCacheDelete</code></a> to free all fonts in the cache.</p>
+</blockquote>
 <h2 class="title"><a id="FUNCTIONS">Functions</a></h2>
+<h3 class="function"><a id="ttfCacheAdd">ttfCacheAdd</a></h3>
+<p class="description">Add a font to the cache.</p>
+<p class="code">
+<span class="reserved">void</span> ttfCacheAdd(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, <a href="#ttf_t">ttf_t</a> *font, <span class="reserved">const</span> <span class="reserved">char</span> *filename);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>filename</th>
+<td class="description">Filename/URL or <code>NULL</code> for in-memory</td></tr>
+</tbody></table>
+<h3 class="function"><a id="ttfCacheCreate">ttfCacheCreate</a></h3>
+<p class="description">Create a cache of system and user fonts.</p>
+<p class="code">
+<a href="#ttf_cache_t">ttf_cache_t</a> *ttfCacheCreate(<span class="reserved">const</span> <span class="reserved">char</span> *appname, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_cbdata);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>appname</th>
+<td class="description">Application name</td></tr>
+<tr><th>err_cb</th>
+<td class="description">Error callback function</td></tr>
+<tr><th>err_cbdata</th>
+<td class="description">Error callback data</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font cache</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function creates a cache of system and user fonts, loading any
+previously cached results for the named application.</p>
+<h3 class="function"><a id="ttfCacheDelete">ttfCacheDelete</a></h3>
+<p class="description">Delete a cache.</p>
+<p class="code">
+<span class="reserved">void</span> ttfCacheDelete(<a href="#ttf_cache_t">ttf_cache_t</a> *cache);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+</tbody></table>
+<h3 class="function"><a id="ttfCacheFind">ttfCacheFind</a></h3>
+<p class="description">Find a font in the cache.</p>
+<p class="code">
+<a href="#ttf_t">ttf_t</a> *ttfCacheFind(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, <span class="reserved">const</span> <span class="reserved">char</span> *family, <a href="#ttf_style_t">ttf_style_t</a> style, <a href="#ttf_weight_t">ttf_weight_t</a> weight, <a href="#ttf_stretch_t">ttf_stretch_t</a> stretch);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>family</th>
+<td class="description">Family name</td></tr>
+<tr><th>style</th>
+<td class="description">Font style or <code>TTF_STYLE_UNSPEC</code></td></tr>
+<tr><th>weight</th>
+<td class="description">Font weight or <code>TTF_WEIGHT_UNSPEC</code></td></tr>
+<tr><th>stretch</th>
+<td class="description">Font stretch or <code>TTF_STRETCH_UNSPEC</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font or <code>NULL</code> if no matching font found</p>
+<h3 class="function"><a id="ttfCacheGetFamily">ttfCacheGetFamily</a></h3>
+<p class="description">Get the font family at index N.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfCacheGetFamily(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font family name or <code>NULL</code></p>
+<h3 class="function"><a id="ttfCacheGetFilename">ttfCacheGetFilename</a></h3>
+<p class="description">Get the font filename  at index N.</p>
+<p class="code">
+<span class="reserved">const</span> <span class="reserved">char</span> *ttfCacheGetFilename(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font filename/URL or <code>NULL</code> if none</p>
+<h3 class="function"><a id="ttfCacheGetFont">ttfCacheGetFont</a></h3>
+<p class="description">Get the font at index N</p>
+<p class="code">
+<a href="#ttf_t">ttf_t</a> *ttfCacheGetFont(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font</p>
+<h3 class="function"><a id="ttfCacheGetIndex">ttfCacheGetIndex</a></h3>
+<p class="description">Get the font index for the composite font at index N.</p>
+<p class="code">
+size_t ttfCacheGetIndex(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Cached font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Composite font index</p>
+<h3 class="function"><a id="ttfCacheGetNumFonts">ttfCacheGetNumFonts</a></h3>
+<p class="description">Get the number of fonts in the cache.</p>
+<p class="code">
+size_t ttfCacheGetNumFonts(<a href="#ttf_cache_t">ttf_cache_t</a> *cache);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Number of fonts</p>
+<h3 class="function"><a id="ttfCacheGetStretch">ttfCacheGetStretch</a></h3>
+<p class="description">Get the font stretch at index N.</p>
+<p class="code">
+<a href="#ttf_stretch_t">ttf_stretch_t</a> ttfCacheGetStretch(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font stretch or <code>TTF_STRETCH_UNSPEC</code></p>
+<h3 class="function"><a id="ttfCacheGetStyle">ttfCacheGetStyle</a></h3>
+<p class="description">Get the font style at index N.</p>
+<p class="code">
+<a href="#ttf_style_t">ttf_style_t</a> ttfCacheGetStyle(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font style or <code>TTF_STYLE_UNSPEC</code></p>
+<h3 class="function"><a id="ttfCacheGetWeight">ttfCacheGetWeight</a></h3>
+<p class="description">Get the font weight at index N.</p>
+<p class="code">
+<a href="#ttf_weight_t">ttf_weight_t</a> ttfCacheGetWeight(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>cache</th>
+<td class="description">Font cache</td></tr>
+<tr><th>n</th>
+<td class="description">Font index starting at <code>0</code></td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description">Font weight or <code>TTF_WEIGHT_UNSPEC</code></p>
 <h3 class="function"><a id="ttfCreate">ttfCreate</a></h3>
 <p class="description">Create a new font object for the named font file.</p>
 <p class="code">
-<a href="#ttf_t">ttf_t</a> *ttfCreate(<span class="reserved">const</span> <span class="reserved">char</span> *filename, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_data);</p>
+<a href="#ttf_t">ttf_t</a> *ttfCreate(<span class="reserved">const</span> <span class="reserved">char</span> *filename, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_cbdata);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>filename</th>
@@ -339,7 +563,7 @@ cc -o myprogram `pkg-config --cflags ttf` myprogram.c `pkg-config --libs ttf`
 <td class="description">Font number to create in collection (0-based)</td></tr>
 <tr><th>err_cb</th>
 <td class="description">Error callback or <code>NULL</code> to log to stderr</td></tr>
-<tr><th>err_data</th>
+<tr><th>err_cbdata</th>
 <td class="description">Error callback data</td></tr>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
@@ -354,13 +578,13 @@ font is number <code>0</code>.  Once created, you can call the <a href="#ttfGetN
 function to determine whether the loaded font file is a collection with more
 than one font.<br>
 <br>
-The &quot;err_cb&quot; and &quot;err_data&quot; arguments specify a callback function and data
+The &quot;err_cb&quot; and &quot;err_cbdata&quot; arguments specify a callback function and data
 pointer for receiving error messages.  If <code>NULL</code>, errors are sent to the
 <code>stderr</code> file.  The callback function receives the data pointer and a text
 message string, for example:
 
 <pre>
-void my_err_cb(void *err_data, const char *message)
+void my_err_cb(void *err_cbdata, const char *message)
 {
   fprintf(stderr, &quot;ERROR: %sn&quot;, message);
 }
@@ -369,7 +593,7 @@ void my_err_cb(void *err_data, const char *message)
 <h3 class="function"><a id="ttfCreateData">ttfCreateData</a></h3>
 <p class="description">Create a new font object from a memory buffer.</p>
 <p class="code">
-<a href="#ttf_t">ttf_t</a> *ttfCreateData(<span class="reserved">void</span> *data, size_t datasize, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_data);</p>
+<a href="#ttf_t">ttf_t</a> *ttfCreateData(<span class="reserved">const</span> <span class="reserved">void</span> *data, size_t datasize, size_t idx, <a href="#ttf_err_cb_t">ttf_err_cb_t</a> err_cb, <span class="reserved">void</span> *err_cbdata);</p>
 <h4 class="parameters">Parameters</h4>
 <table class="list"><tbody>
 <tr><th>data</th>
@@ -380,7 +604,7 @@ void my_err_cb(void *err_data, const char *message)
 <td class="description">Font number to create in collection (0-based)</td></tr>
 <tr><th>err_cb</th>
 <td class="description">Error callback or <code>NULL</code> to log to stderr</td></tr>
-<tr><th>err_data</th>
+<tr><th>err_cbdata</th>
 <td class="description">Error callback data</td></tr>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
@@ -399,13 +623,13 @@ font is number <code>0</code>.  Once created, you can call the <a href="#ttfGetN
 function to determine whether the loaded font file is a collection with more
 than one font.<br>
 <br>
-The &quot;err_cb&quot; and &quot;err_data&quot; arguments specify a callback function and data
+The &quot;err_cb&quot; and &quot;err_cbdata&quot; arguments specify a callback function and data
 pointer for receiving error messages.  If <code>NULL</code>, errors are sent to the
 <code>stderr</code> file.  The callback function receives the data pointer and a text
 message string, for example:
 
 <pre>
-void my_err_cb(void *err_data, const char *message)
+void my_err_cb(void *err_cbdata, const char *message)
 {
   fprintf(stderr, &quot;ERROR: %sn&quot;, message);
 }
@@ -663,6 +887,11 @@ size_t ttfGetNumFonts(<a href="#ttf_t">ttf_t</a> *font);</p>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description"><code>true</code> if fixed pitch, <code>false</code> otherwise</p>
 <h2 class="title"><a id="TYPES">Data Types</a></h2>
+<h3 class="typedef"><a id="ttf_cache_t">ttf_cache_t</a></h3>
+<p class="description">Font cache</p>
+<p class="code">
+typedef struct _ttf_cache_s ttf_cache_t;
+</p>
 <h3 class="typedef"><a id="ttf_err_cb_t">ttf_err_cb_t</a></h3>
 <p class="description">Font error callback</p>
 <p class="code">
@@ -687,11 +916,6 @@ typedef enum <a href="#ttf_style_e">ttf_style_e</a> ttf_style_t;
 <p class="description">Font object</p>
 <p class="code">
 typedef struct _ttf_s ttf_t;
-</p>
-<h3 class="typedef"><a id="ttf_variant_t">ttf_variant_t</a></h3>
-<p class="description">Font variant</p>
-<p class="code">
-typedef enum <a href="#ttf_variant_e">ttf_variant_e</a> ttf_variant_t;
 </p>
 <h3 class="typedef"><a id="ttf_weight_t">ttf_weight_t</a></h3>
 <p class="description">Font weight</p>
@@ -732,6 +956,7 @@ typedef enum <a href="#ttf_weight_e">ttf_weight_e</a> ttf_weight_t;
 <tr><th>TTF_STRETCH_SEMI_EXPANDED </th><td class="description">semi-expanded</td></tr>
 <tr><th>TTF_STRETCH_ULTRA_CONDENSED </th><td class="description">ultra-condensed</td></tr>
 <tr><th>TTF_STRETCH_ULTRA_EXPANDED </th><td class="description">ultra-expanded</td></tr>
+<tr><th>TTF_STRETCH_UNSPEC </th><td class="description">Unspecified</td></tr>
 </tbody></table>
 <h3 class="enumeration"><a id="ttf_style_e">ttf_style_e</a></h3>
 <p class="description">Font style</p>
@@ -740,13 +965,7 @@ typedef enum <a href="#ttf_weight_e">ttf_weight_e</a> ttf_weight_t;
 <tr><th>TTF_STYLE_ITALIC </th><td class="description">Italic font</td></tr>
 <tr><th>TTF_STYLE_NORMAL </th><td class="description">Normal font</td></tr>
 <tr><th>TTF_STYLE_OBLIQUE </th><td class="description">Oblique (angled) font</td></tr>
-</tbody></table>
-<h3 class="enumeration"><a id="ttf_variant_e">ttf_variant_e</a></h3>
-<p class="description">Font variant</p>
-<h4 class="constants">Constants</h4>
-<table class="list"><tbody>
-<tr><th>TTF_VARIANT_NORMAL </th><td class="description">Normal font</td></tr>
-<tr><th>TTF_VARIANT_SMALL_CAPS </th><td class="description">Font whose lowercase letters are small capitals</td></tr>
+<tr><th>TTF_STYLE_UNSPEC </th><td class="description">Unspecified</td></tr>
 </tbody></table>
 <h3 class="enumeration"><a id="ttf_weight_e">ttf_weight_e</a></h3>
 <p class="description">Font weight</p>
@@ -761,6 +980,7 @@ typedef enum <a href="#ttf_weight_e">ttf_weight_e</a> ttf_weight_t;
 <tr><th>TTF_WEIGHT_700 </th><td class="description">Weight 700 (Bold)</td></tr>
 <tr><th>TTF_WEIGHT_800 </th><td class="description">Weight 800 (Extra/Ultra-Bold)</td></tr>
 <tr><th>TTF_WEIGHT_900 </th><td class="description">Weight 900 (Black/Heavy)</td></tr>
+<tr><th>TTF_WEIGHT_UNSPEC </th><td class="description">Unspecified</td></tr>
 </tbody></table>
 </div>
 </body>

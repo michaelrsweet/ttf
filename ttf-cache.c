@@ -14,6 +14,17 @@
 
 
 //
+// Constants...
+//
+
+#define TTF_CACHE_HEADER	"ttf-cache"
+					// Header/prefix string for first line
+#define TTF_CACHE_HEADERLEN	9	// Length of header string
+#define TTF_CACHE_MAX		65536	// Maximum number of cached fonts
+#define TTF_CACHE_VERSION	0	// Version number of cache format
+
+
+//
 // Types...
 //
 
@@ -50,7 +61,8 @@ struct _ttf_cache_s			// Font cache
 static void	ttf_add_font(ttf_cache_t *cache, ttf_t *font, const char *filename, size_t idx, bool delete_it);
 static void	ttf_cache_err_cb(ttf_cache_t *cache, const char *message);
 static int	ttf_compare_fonts(_ttf_cfont_t *a, _ttf_cfont_t *b);
-static bool	ttf_load_cache(ttf_cache_t *cache, struct stat *cinfo);
+static char	*ttf_gets(FILE *fp, char *buffer, size_t bufsize);
+static bool	ttf_load_cache(ttf_cache_t *cache);
 static time_t	ttf_load_fonts(ttf_cache_t *cache, const char *d, int depth, bool scanonly);
 static void	ttf_save_cache(ttf_cache_t *cache);
 static void	ttf_sort_fonts(ttf_cache_t *cache);
@@ -208,7 +220,7 @@ ttfCacheCreate(const char   *appname,	// I - Application name
   }
 
   // Load the list of system fonts...
-  if (!rescan && !ttf_load_cache(cache, &cinfo))
+  if (!rescan && !ttf_load_cache(cache))
     rescan = true;
 
   if (rescan)
@@ -463,7 +475,9 @@ ttf_add_font(ttf_cache_t *cache,	// I - Font cache
   const char	*family;		// Font family
 
 
+#if DEBUG > 1
   TTF_DEBUG("ttf_add_font(cache=%p, font=%p(%s), filename=\"%s\", idx=%u, delete_it=%s)\n", (void *)cache, (void *)font, ttfGetFamily(font), filename, (unsigned)idx, delete_it ? "true" : "false");
+#endif // DEBUG > 1
 
   // Expand the font cache array as needed...
   if (cache->num_fonts >= cache->alloc_fonts)
@@ -562,15 +576,202 @@ ttf_compare_fonts(_ttf_cfont_t *a,	// I - First entry
 
 
 //
+// 'ttf_gets()' - Read a line from the cache file and strip any trailing newline.
+//
+
+static char *				// O - Line or `NULL` on EOF
+ttf_gets(FILE   *fp,			// I - File pointer
+         char   *buffer,		// I - Line buffer
+         size_t bufsize)		// I - Size of line buffer
+{
+  char	*bufend;			// End of line
+
+
+  // Try reading a line...
+  if (!fgets(buffer, (int)bufsize, fp))
+    return (NULL);
+
+  // Strip any trailing newline and return it...
+  bufend = buffer + strlen(buffer) - 1;
+
+  if (bufend >= buffer && *bufend == '\n')
+    *bufend = '\0';
+
+  return (buffer);
+}
+
+
+//
 // 'ttf_load_cache()' - Load all fonts from the cache.
 //
 
 static bool				// O - `true` on success, `false` on error
-ttf_load_cache(ttf_cache_t *cache,	// I - Font cache
-               struct stat *cinfo)	// I - Font cache file info
+ttf_load_cache(ttf_cache_t *cache)	// I - Font cache
 {
-  (void)cache;
-  (void)cinfo;
+  FILE		*fp;			// Cache file
+  _ttf_cfont_t	*font;			// Current cached font
+  char		line[1024],		// Header/attributes line
+		*lineptr;		// Pointer into line
+  long		version,		// Cache version number
+		num_fonts,		// Number of fonts in cache
+		idx,			// Font index in a file
+		stretch,		// Font stretch
+		style,			// Font style
+		weight;			// Font weight
+
+
+  // Try opening the cache file...
+  if ((fp = fopen(cache->cname, "r")) == NULL)
+  {
+    TTF_DEBUG("ttf_load_cache: Unable to open '%s': %s\n", cache->cname, strerror(errno));
+    return (false);
+  }
+
+  // Read the first line of the form:
+  //
+  // ttf-cacheVERSION NUM-FONTS
+  if (!ttf_gets(fp, line, sizeof(line)))
+    goto error;
+
+  TTF_DEBUG("ttf_load_cache: (version-numfont) %s\n", line);
+
+  if (strncmp(line, TTF_CACHE_HEADER, TTF_CACHE_HEADERLEN))
+    goto error;
+
+  if ((version = strtol(line + TTF_CACHE_HEADERLEN, &lineptr, 10)) != TTF_CACHE_VERSION || !lineptr || !isspace(*lineptr & 255))
+    goto error;
+
+  if ((num_fonts = strtol(lineptr, &lineptr, 10)) < 1 || num_fonts > TTF_CACHE_MAX || !lineptr || *lineptr)
+    goto error;
+
+  // Allocate memory for the specified number of fonts...
+  if ((font = calloc((size_t)num_fonts, sizeof(_ttf_cfont_t))) == NULL)
+    goto error;
+
+  cache->alloc_fonts = (size_t)num_fonts;
+  cache->fonts       = font;
+
+  // Read cache entries of the form:
+  //
+  // INDEX FILENAME
+  // STRETCH STYLE WEIGHT FAMILY
+
+  while (ttf_gets(fp, line, sizeof(line)))
+  {
+    // Get index and filename...
+    TTF_DEBUG("ttf_load_cache: (index-filename ) %s\n", line);
+
+    if ((idx = strtol(line, &lineptr, 10)) < 0 || !lineptr || !isspace(*lineptr & 255))
+    {
+      TTF_DEBUG("ttf_load_cache: Bad index or filename.\n");
+      goto error;
+    }
+
+    while (*lineptr && isspace(*lineptr & 255))
+      lineptr ++;
+
+    if (!*lineptr)
+    {
+      TTF_DEBUG("ttf_load_cache: Bad filename.\n");
+      goto error;
+    }
+
+    if (access(lineptr, R_OK))
+    {
+      TTF_DEBUG("ttf_load_cache: Unable to access '%s': %s\n", lineptr, strerror(errno));
+      goto error;
+    }
+
+    if ((font->filename = strdup(lineptr)) == NULL)
+    {
+      TTF_DEBUG("ttf_load_cache: Unable to allocate filename.\n");
+      goto error;
+    }
+
+    font->idx = (size_t)idx;
+    cache->num_fonts ++;
+
+    // Get font attributes (stretch, style, weight, and family name)...
+    if (!ttf_gets(fp, line, sizeof(line)))
+    {
+      TTF_DEBUG("ttf_load_cache: Unable to get font attributes line.\n");
+      goto error;
+    }
+
+    TTF_DEBUG("ttf_load_cache: (str-sty-wgt-fam) %s\n", line);
+
+    if ((stretch = strtol(line, &lineptr, 10)) < TTF_STRETCH_NORMAL || stretch > TTF_STRETCH_ULTRA_EXPANDED || !lineptr || !isspace(*lineptr & 255))
+    {
+      TTF_DEBUG("ttf_load_cache: Bad stretch.\n");
+      goto error;
+    }
+
+    if ((style = strtol(lineptr, &lineptr, 10)) < TTF_STYLE_NORMAL || style > TTF_STYLE_OBLIQUE || !lineptr || !isspace(*lineptr & 255))
+    {
+      TTF_DEBUG("ttf_load_cache: Bad style.\n");
+      goto error;
+    }
+
+    if ((weight = strtol(lineptr, &lineptr, 10)) < TTF_WEIGHT_100 || weight > TTF_WEIGHT_900 || !lineptr || !isspace(*lineptr & 255))
+    {
+      TTF_DEBUG("ttf_load_cache: Bad weight.\n");
+      goto error;
+    }
+
+    while (*lineptr && isspace(*lineptr & 255))
+      lineptr ++;
+
+    if (!*lineptr)
+    {
+      TTF_DEBUG("ttf_load_cache: Bad family name.\n");
+      goto error;
+    }
+
+    if ((font->family = strdup(lineptr)) == NULL)
+    {
+      TTF_DEBUG("ttf_load_cache: Unable to allocate family name.\n");
+      goto error;
+    }
+
+    font->stretch = (ttf_stretch_t)stretch;
+    font->style   = (ttf_style_t)style;
+    font->weight  = (ttf_weight_t)weight;
+
+    font ++;
+  }
+
+  // See if we got as many fonts as advertised in the header...
+  if (cache->num_fonts < cache->alloc_fonts)
+  {
+    TTF_DEBUG("ttf_load_cache: Got %lu fonts, expected %lu fonts.\n", (unsigned long)cache->num_fonts, (unsigned long)cache->alloc_fonts);
+    goto error;
+  }
+
+  // Everything was good, close the cache file and return...
+  fclose(fp);
+
+  TTF_DEBUG("ttf_load_cache: Returning true.\n");
+
+  return (true);
+
+  // If we get here there was a problem...
+  error:
+
+  // Close the cache file...
+  fclose(fp);
+
+  // Clear any loaded fonts...
+  size_t i;				// Looping var
+
+  for (i = cache->num_fonts, font = cache->fonts; i > 0; i --, font ++)
+  {
+    free(font->filename);
+    free(font->family);
+  }
+
+  cache->num_fonts = 0;
+
+  TTF_DEBUG("ttf_load_cache: Returning false.\n");
 
   return (false);
 }
@@ -680,7 +881,32 @@ ttf_load_fonts(ttf_cache_t *cache,	// I - Font cache
 static void
 ttf_save_cache(ttf_cache_t *cache)	// I - Font cache
 {
-  (void)cache;
+  FILE		*fp;			// Cache file
+  size_t	i;			// Looping var
+  _ttf_cfont_t	*font;			// Current font
+
+
+  if (cache->num_fonts == 0)
+    return;
+
+  if ((fp = fopen(cache->cname, "w")) == NULL)
+  {
+    TTF_DEBUG("ttf_load_cache: Unable to create '%s': %s\n", cache->cname, strerror(errno));
+    return;
+  }
+
+  fprintf(fp, TTF_CACHE_HEADER "%d %lu\n", TTF_CACHE_VERSION, (unsigned long)cache->num_fonts);
+
+  for (i = cache->num_fonts, font = cache->fonts; i > 0; i --, font ++)
+  {
+    if (!font->filename || !font->family)
+      continue;
+
+    fprintf(fp, "%u %s\n", (unsigned)font->idx, font->filename);
+    fprintf(fp, "%d %d %d %s\n", font->stretch, font->style, font->weight, font->family);
+  }
+
+  fclose(fp);
 }
 
 

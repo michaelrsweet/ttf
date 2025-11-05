@@ -124,7 +124,7 @@ format_name(char          *buffer,	// I - String buffer
     " Thin",				// TTF_WEIGHT_100
     " Extra-Light",			// TTF_WEIGHT_200
     " Light",				// TTF_WEIGHT_300
-    " Regular",				// TTF_WEIGHT_400
+    "",					// TTF_WEIGHT_400
     " Medium",				// TTF_WEIGHT_500
     " Semi-Bold",			// TTF_WEIGHT_600
     " Bold",				// TTF_WEIGHT_700

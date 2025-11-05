@@ -990,7 +990,11 @@ create_font(const char   *filename,	// I - Filename of `NULL`
     if (os_2.usWidthClass >= 1 && os_2.usWidthClass <= (int)(sizeof(stretches) / sizeof(stretches[0])))
       font->stretch = stretches[os_2.usWidthClass - 1];
 
-    font->weight     = (short)os_2.usWeightClass;
+    if (os_2.usWeightClass < 100 || os_2.usWeightClass > 900)
+      font->weight = 400;
+    else
+      font->weight = (short)os_2.usWeightClass;
+
     font->cap_height = os_2.sCapHeight;
     font->x_height   = os_2.sxHeight;
   }
