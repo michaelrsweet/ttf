@@ -41,8 +41,9 @@
 #define TTF_OFF_Mac_Roman	0	// Macintosh Roman encoding ID
 #define TTF_OFF_Mac_USEnglish	0	// Macintosh US English language ID
 
-#define TTF_OFF_Windows	3	// Windows platform ID
+#define TTF_OFF_Windows		3	// Windows platform ID
 #define TTF_OFF_Windows_English 9	// Windows English language ID base
+#define TTF_OFF_Windows_Symbol	0	// Windows symbol encoding
 #define TTF_OFF_Windows_UCS2	1	// Windows UCS-2 encoding
 #define TTF_OFF_Windows_UCS4	10	// Windows UCS-4 encoding
 
@@ -1187,7 +1188,8 @@ read_cmap(ttf_t *font)			// I - Font
 		cformat;		// Formap of cmap data
   unsigned	clength,		// Length of cmap data
 		coffset = 0,		// Offset to cmap data
-		roman_offset = 0;	// MacRoman offset
+		roman_offset = 0,	// MacRoman offset
+		symbol_offset = 0;	// Symbol offset
   int		*cmapptr;		// Pointer into cmap
 #if 0
   const int	*unimap = NULL;		// Unicode character map, if any
@@ -1261,11 +1263,18 @@ read_cmap(ttf_t *font)			// I - Font
 
     if (platform_id == TTF_OFF_Mac && encoding_id == TTF_OFF_Mac_Roman)
       roman_offset = coffset;
+    else if (platform_id == TTF_OFF_Windows && encoding_id == TTF_OFF_Windows_Symbol)
+      symbol_offset = coffset;
   }
 
   if (i >= num_tables)
   {
-    if (roman_offset)
+    if (symbol_offset)
+    {
+      TTF_DEBUG("read_cmap: Using Windows Symbol cmap table.\n");
+      coffset = symbol_offset;
+    }
+    else if (roman_offset)
     {
       TTF_DEBUG("read_cmap: Using MacRoman cmap table.\n");
       coffset = roman_offset;
@@ -2168,7 +2177,7 @@ read_table(ttf_t  *font)		// I - Font
     current->offset   = read_ulong(font);
     current->length   = read_ulong(font);
 
-    TTF_DEBUG("read_table: [%d] tag='%c%c%c%c' checksum=%u offset=%u length=%u\n", i, (current->tag >> 24) & 255, (current->tag >> 16) & 255, (current->tag >> 8) & 255, current->tag & 255, current->checksum, current->offset, current->length);
+    TTF_DEBUG("read_table: [%d] tag='%c%c%c%c' checksum=%u offset=%u length=%u\n", font->table.num_entries - i, (current->tag >> 24) & 255, (current->tag >> 16) & 255, (current->tag >> 8) & 255, current->tag & 255, current->checksum, current->offset, current->length);
   }
 
   return (true);
