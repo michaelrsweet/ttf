@@ -1,7 +1,7 @@
 //
 // Private header file for TTF library
 //
-//     https://github.com/michaelrsweet/ttf
+// https://www.msweet.org/ttf
 //
 // Copyright © 2018-2025 by Michael R Sweet.
 //
@@ -27,6 +27,7 @@
 #  include <stdlib.h>
 #  include <stdarg.h>
 #  include <string.h>
+#  include <ctype.h>
 #  include <fcntl.h>
 #  include <sys/stat.h>
 #  ifdef _WIN32

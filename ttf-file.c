@@ -1,7 +1,7 @@
 //
 // Font file code for TTF library
 //
-//     https://github.com/michaelrsweet/ttf
+// https://www.msweet.org/ttf
 //
 // Copyright © 2018-2025 by Michael R Sweet.
 //
@@ -1400,7 +1400,7 @@ read_cmap(ttf_t *font)			// I - Font
 
             if (segment->startCode > segment->endCode)
             {
-	      errorf(font, "Bad cmap table segment %u to %u.", segments->startCode, segment->endCode);
+	      errorf(font, "Bad cmap format 4 table segment %u to %u.", segments->startCode, segment->endCode);
 	      free(segments);
 	      free(glyphIdArray);
 	      return (false);
@@ -1515,11 +1515,16 @@ read_cmap(ttf_t *font)			// I - Font
 	    group->startGlyphID  = read_ulong(font);
 	    TTF_DEBUG("read_cmap: [%u] startCharCode=%u, endCharCode=%u, startGlyphID=%u\n", gidx, group->startCharCode, group->endCharCode, group->startGlyphID);
 
-            if (group->startCharCode > group->endCharCode || group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+            if (group->startCharCode > group->endCharCode)
             {
-	      errorf(font, "Bad cmap table segment %u to %u.", group->startCharCode, group->endCharCode);
+	      errorf(font, "Bad cmap format 12 table segment %u to %u.", group->startCharCode, group->endCharCode);
 	      free(groups);
 	      return (false);
+            }
+            else if (group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+            {
+              // Ignore ranges outside what we choose to support...
+              continue;
             }
 
             if (group->endCharCode >= font->num_cmap)
@@ -1532,7 +1537,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (font->num_cmap == 0 || font->num_cmap > TTF_FONT_MAX_CHAR)
 	  {
-	    errorf(font, "Invalid cmap table with %u characters.", (unsigned)font->num_cmap);
+	    errorf(font, "Invalid cmap format 12 table with %u characters.", (unsigned)font->num_cmap);
 	    free(groups);
 	    return (false);
 	  }
@@ -1552,6 +1557,9 @@ read_cmap(ttf_t *font)			// I - Font
 	  // array...
 	  for (gidx = 0, group = groups; gidx < nGroups; gidx ++, group ++)
 	  {
+	    if (group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+	      continue;
+
             for (ch = group->startCharCode; ch <= group->endCharCode && ch < font->num_cmap; ch ++)
               cmapptr[ch] = (int)(group->startGlyphID + ch - group->startCharCode);
           }
@@ -1606,11 +1614,15 @@ read_cmap(ttf_t *font)			// I - Font
 	    group->glyphID       = read_ulong(font);
 	    TTF_DEBUG("read_cmap: [%u] startCharCode=%u, endCharCode=%u, glyphID=%u\n", gidx, group->startCharCode, group->endCharCode, group->glyphID);
 
-            if (group->startCharCode > group->endCharCode || group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+            if (group->startCharCode > group->endCharCode)
             {
-	      errorf(font, "Bad cmap table segment %u to %u.", group->startCharCode, group->endCharCode);
+	      errorf(font, "Bad cmap format 13 table segment %u to %u.", group->startCharCode, group->endCharCode);
 	      free(groups);
 	      return (false);
+            }
+            else if (group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+            {
+              continue;
             }
 
             if (group->endCharCode >= font->num_cmap)
@@ -1623,7 +1635,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (font->num_cmap == 0 || font->num_cmap > TTF_FONT_MAX_CHAR)
 	  {
-	    errorf(font, "Invalid cmap table with %u characters.", (unsigned)font->num_cmap);
+	    errorf(font, "Invalid cmap format 13 table with %u characters.", (unsigned)font->num_cmap);
 	    free(groups);
 	    return (false);
 	  }
@@ -1643,6 +1655,9 @@ read_cmap(ttf_t *font)			// I - Font
 	  // array...
 	  for (gidx = 0, group = groups; gidx < nGroups; gidx ++, group ++)
 	  {
+            if (group->startCharCode >= TTF_FONT_MAX_CHAR || group->endCharCode >= TTF_FONT_MAX_CHAR)
+              continue;
+
             for (ch = group->startCharCode; ch <= group->endCharCode && ch < font->num_cmap; ch ++)
               cmapptr[ch] = (int)group->glyphID;
           }
@@ -1651,6 +1666,26 @@ read_cmap(ttf_t *font)			// I - Font
 	  free(groups);
 	}
         break;
+
+#if 0
+    case 14 :
+	{
+	  // Format 14: Unicode variation sequences
+	  unsigned	ch,		// Current character
+			gidx,		// Current group
+			nGroups;	// Number of groups
+	  _ttf_off_cmap13_t *groups,	// Groups
+			*group;		// This group
+
+	  // Read the table...
+	  if (read_ulong(font) == 0)
+	  {
+	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    return (false);
+	  }
+	}
+	break;
+#endif // 0
 
     default :
         errorf(font, "Format %d cmap tables are not yet supported.", cformat);

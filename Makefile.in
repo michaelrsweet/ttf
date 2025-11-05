@@ -108,6 +108,7 @@ all:		$(TARGETS)
 
 # Clean all build files
 clean:
+	echo Cleaning build files...
 	rm -f $(TARGETS) $(OBJS)
 
 
@@ -150,7 +151,8 @@ install:	all
 
 # Run the unit tests
 test:		testttf
-	./testttf
+	echo Running unit tests...
+	./testttf 2>test.log
 
 
 # Analyze code with the Clang static analyzer <https://clang-analyzer.llvm.org>
@@ -168,11 +170,13 @@ cppcheck:
 
 # Unit test program
 testttf:	libttf.a testttf.o
+	echo Linking $@...
 	$(CC) $(LDFLAGS) -o testttf testttf.o libttf.a $(LIBS)
 
 
 # Library
 libttf.a:	$(LIBOBJS)
+	echo Creating $@...
 	$(AR) $(ARFLAGS) $@ $(LIBOBJS)
 	$(RANLIB) $@
 

@@ -1,7 +1,7 @@
 //
 // Unit test program for TTF library
 //
-//     https://github.com/michaelrsweet/ttf
+// https://www.msweet.org/ttf
 //
 // Copyright © 2018-2025 by Michael R Sweet.
 //
@@ -10,15 +10,17 @@
 //
 // Usage:
 //
-//   ./testttf [FILENAME]
+//   ./testttf [--list] [FILENAME]
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/stat.h>
 #include "ttf.h"
+#include "test.h"
 
 
 //
@@ -26,6 +28,7 @@
 //
 
 static void	error_cb(void *data, const char *message);
+static int	list_fonts(void);
 static int	test_font(const char *filename);
 
 
@@ -44,7 +47,12 @@ main(int  argc,				// I - Number of command-line arguments
   if (argc > 1)
   {
     for (i = 1; i < argc; i ++)
-      errors += test_font(argv[i]);
+    {
+      if (!strcmp(argv[i], "--list"))
+        errors += list_fonts();
+      else
+	errors += test_font(argv[i]);
+    }
   }
   else
   {
@@ -52,12 +60,9 @@ main(int  argc,				// I - Number of command-line arguments
     errors += test_font("testfiles/OpenSans-Bold.ttf");
     errors += test_font("testfiles/OpenSans-Regular.ttf");
     errors += test_font("testfiles/NotoSansJP-Regular.otf");
-  }
 
-  if (!errors)
-    puts("\nALL TESTS PASSED");
-  else
-    printf("\n%d TEST(S) FAILED\n", errors);
+    errors += list_fonts();
+  }
 
   return (errors);
 }
@@ -71,7 +76,81 @@ static void
 error_cb(void       *data,		// I - User data (not used)
          const char *message)		// I - Message string
 {
-  fprintf(stderr, "FAIL (%s)\n", message);
+  testEndMessage(false, "%s", message);
+}
+
+
+//
+// 'list_fonts()' - List available fonts.
+//
+
+static int				// O - Number of errors
+list_fonts(void)
+{
+  ttf_cache_t	*cache;			// Font cache
+  size_t	i,			// Looping var
+		num_fonts;		// Number of fonts
+  time_t	start,			// Start time
+		end;			// End time
+  static const char * const stretches[] =
+  {					// Font stretch values
+    " Normal",				// TTF_STRETCH_NORMAL
+    " Ultra-Condensed",			// TTF_STRETCH_ULTRA_CONDENSED
+    " Extra-Condensed",			// TTF_STRETCH_EXTRA_CONDENSED
+    " Condensed",			// TTF_STRETCH_CONDENSED
+    " Semi-Condensed",			// TTF_STRETCH_SEMI_CONDENSED
+    " Semi-Expanded",			// TTF_STRETCH_SEMI_EXPANDED
+    " Expanded",			// TTF_STRETCH_EXPANDED
+    " Extra-Expanded",			// TTF_STRETCH_EXTRA_EXPANDED
+    " Ultra-Expanded"			// TTF_STRETCH_ULTRA_EXPANDED
+  };
+  static const char * const styles[] =	// Font styles
+  {
+    "",					// TTF_STYLE_NORMAL
+    " Italic",				// TTF_STYLE_ITALIC
+    " Oblique"				// TTF_STYLE_OBLIQUE
+  };
+  static const char * const weights[] =	// Font weights
+  {
+    " Thin",				// TTF_WEIGHT_100
+    " Extra-Light",			// TTF_WEIGHT_200
+    " Light",				// TTF_WEIGHT_300
+    " Regular",				// TTF_WEIGHT_400
+    " Medium",				// TTF_WEIGHT_500
+    " Semi-Bold",			// TTF_WEIGHT_600
+    " Bold",				// TTF_WEIGHT_700
+    " Extra-Bold",			// TTF_WEIGHT_800
+    " Black"				// TTF_WEIGHT_900
+  };
+
+  start = time(NULL);
+  testBegin("ttfCacheCreate");
+  if ((cache = ttfCacheCreate("testttf", error_cb, /*err_cbdata*/NULL)) == NULL)
+    return (1);
+  end = time(NULL);
+
+  num_fonts = ttfCacheGetNumFonts(cache);
+
+  testEndMessage(true, "%lu fonts found, %d seconds", (unsigned long)num_fonts, (int)(end - start));
+
+  for (i = 0; i < num_fonts; i ++)
+  {
+    ttf_stretch_t stretch = ttfCacheGetStretch(cache, i);
+    ttf_style_t style = ttfCacheGetStyle(cache, i);
+    ttf_weight_t weight = ttfCacheGetWeight(cache, i);
+
+    if (weight < TTF_WEIGHT_100)
+      weight = TTF_WEIGHT_100;
+    else if (weight > TTF_WEIGHT_900)
+      weight = TTF_WEIGHT_900;
+
+    if (ttfCacheGetIndex(cache, i) > 0)
+      testMessage("%s(%u): %s%s%s%s", ttfCacheGetFilename(cache, i), (unsigned)ttfCacheGetIndex(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+    else
+      testMessage("%s: %s%s%s%s", ttfCacheGetFilename(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+  }
+
+  return (0);
 }
 
 
@@ -127,261 +206,255 @@ test_font(const char *filename)		// I - Font filename
   };
 
 
-  printf("ttfCreate(\"%s\"): ", filename);
-  fflush(stdout);
+  testBegin("ttfCreate(\"%s\")", filename);
   if ((font = ttfCreate(filename, 0, error_cb, NULL)) != NULL)
-    puts("PASS");
+    testEnd(true);
   else
-    errors ++;
+    return (1);
 
-  fputs("ttfGetAscent: ", stdout);
+  testBegin("ttfGetAscent");
   if ((intvalue = ttfGetAscent(font)) > 0)
   {
-    printf("PASS (%d)\n", intvalue);
+    testEndMessage(true, "%d", intvalue);
   }
   else
   {
-    printf("FAIL (%d)\n", intvalue);
+    testEndMessage(false, "%d", intvalue);
     errors ++;
   }
 
-  fputs("ttfGetBounds: ", stdout);
+  testBegin("ttfGetBounds");
   if (ttfGetBounds(font, &bounds))
   {
-    printf("PASS (%g %g %g %g)\n", bounds.left, bounds.bottom, bounds.right, bounds.top);
+    testEndMessage(true, "%g %g %g %g", bounds.left, bounds.bottom, bounds.right, bounds.top);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetCapHeight: ", stdout);
+  testBegin("ttfGetCapHeight");
   if ((intvalue = ttfGetCapHeight(font)) > 0)
   {
-    printf("PASS (%d)\n", intvalue);
+    testEndMessage(true, "%d", intvalue);
   }
   else
   {
-    printf("FAIL (%d)\n", intvalue);
+    testEndMessage(false, "%d", intvalue);
     errors ++;
   }
 
-  fputs("ttfGetCopyright: ", stdout);
+  testBegin("ttfGetCopyright");
   if ((value = ttfGetCopyright(font)) != NULL)
   {
-    printf("PASS (%s)\n", value);
+    testEndMessage(true, "%s", value);
   }
   else
   {
-    puts("WARNING (no copyright found)");
+    testEndMessage(true, "warning: no copyright found");
   }
 
   for (i = 0; i < (int)(sizeof(strings) / sizeof(strings[0])); i ++)
   {
-    printf("ttfGetExtents(\"%s\"): ", strings[i]);
+    testBegin("ttfGetExtents(\"%s\")", strings[i]);
     if (ttfGetExtents(font, 12.0f, strings[i], &extents))
     {
-      printf("PASS (%.1f %.1f %.1f %.1f)\n", extents.left, extents.bottom, extents.right, extents.top);
+      testEndMessage(true, "%.1f %.1f %.1f %.1f", extents.left, extents.bottom, extents.right, extents.top);
     }
     else
     {
-      puts("FAIL");
+      testEnd(false);
       errors ++;
     }
   }
 
-  fputs("ttfGetFamily: ", stdout);
+  testBegin("ttfGetFamily");
   if ((value = ttfGetFamily(font)) != NULL)
   {
-    printf("PASS (%s)\n", value);
+    testEndMessage(true, "%s", value);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetItalicAngle: ", stdout);
+  testBegin("ttfGetItalicAngle");
   if ((realvalue = ttfGetItalicAngle(font)) >= -180.0 && realvalue <= 180.0)
   {
-    printf("PASS (%g)\n", realvalue);
+    testEndMessage(true, "%g", realvalue);
   }
   else
   {
-    printf("FAIL (%g)\n", realvalue);
+    testEndMessage(false, "%g", realvalue);
     errors ++;
   }
 
-  fputs("ttfGetNumFonts: ", stdout);
+  testBegin("ttfGetNumFonts");
   if ((num_fonts = ttfGetNumFonts(font)) > 0)
   {
-    printf("PASS (%u)\n", (unsigned)num_fonts);
+    testEndMessage(true, "%u", (unsigned)num_fonts);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetPostScriptName: ", stdout);
+  testBegin("ttfGetPostScriptName");
   if ((value = ttfGetPostScriptName(font)) != NULL)
   {
-    printf("PASS (%s)\n", value);
+    testEndMessage(true, "%s", value);
 
     strncpy(psname, value, sizeof(psname) - 1);
     psname[sizeof(psname) - 1] = '\0';
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetStretch: ", stdout);
+  testBegin("ttfGetStretch");
   if ((intvalue = (int)ttfGetStretch(font)) >= TTF_STRETCH_NORMAL && intvalue <= TTF_STRETCH_ULTRA_EXPANDED)
   {
-    printf("PASS (%s)\n", stretches[intvalue]);
+    testEndMessage(true, "%s", stretches[intvalue]);
   }
   else
   {
-    printf("FAIL (%d)\n", intvalue);
+    testEndMessage(false, "%d", intvalue);
     errors ++;
   }
 
-  fputs("ttfGetStyle: ", stdout);
+  testBegin("ttfGetStyle");
   if ((style = ttfGetStyle(font)) >= TTF_STYLE_NORMAL && style <= TTF_STYLE_ITALIC)
   {
-    printf("PASS (%s)\n", styles[style]);
+    testEndMessage(true, "%s", styles[style]);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetVersion: ", stdout);
+  testBegin("ttfGetVersion");
   if ((value = ttfGetVersion(font)) != NULL)
   {
-    printf("PASS (%s)\n", value);
+    testEndMessage(true, "%s", value);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetWeight: ", stdout);
+  testBegin("ttfGetWeight");
   if ((weight = ttfGetWeight(font)) >= 0)
   {
-    printf("PASS (%u)\n", (unsigned)weight);
+    testEndMessage(true, "%u", (unsigned)weight);
   }
   else
   {
-    puts("FAIL");
+    testEnd(false);
     errors ++;
   }
 
-  fputs("ttfGetWidth(' '): ", stdout);
-  if ((intvalue = ttfGetWidth(font, ' ')) > 0)
+  for (i = 32; i < 127; i ++)
   {
-    printf("PASS (%d)\n", intvalue);
-  }
-  else
-  {
-    printf("FAIL (%d)\n", intvalue);
-    errors ++;
+    testBegin("ttfGetWidth('%c')", i);
+
+    if ((intvalue = ttfGetWidth(font, i)) > 0)
+    {
+      testEndMessage(true, "%d", intvalue);
+    }
+    else
+    {
+      testEndMessage(false, "%d", intvalue);
+      errors ++;
+    }
   }
 
-  printf("ttfGetWidth(US ASCII): [%d", intvalue);
-  for (i = 33; i < 127; i ++)
-    printf(",%d", ttfGetWidth(font, i));
-  puts("]");
-
-  fputs("ttfGetXHeight: ", stdout);
+  testBegin("ttfGetXHeight");
   if ((intvalue = ttfGetXHeight(font)) > 0)
   {
-    printf("PASS (%d)\n", intvalue);
+    testEndMessage(true, "%d", intvalue);
   }
   else
   {
-    printf("FAIL (%d)\n", intvalue);
+    testEndMessage(false, "%d", intvalue);
     errors ++;
   }
 
-  fputs("ttfIsFixedPitch: ", stdout);
-  if (ttfIsFixedPitch(font))
-    puts("PASS (true)");
-  else
-    puts("PASS (false)");
+  testBegin("ttfIsFixedPitch");
+  testEndMessage(true, "%s", ttfIsFixedPitch(font) ? "true" : "false");
 
   ttfDelete(font);
   font = NULL;
 
   // Now copy the font to memory and open it that way...
-  printf("fopen(\"%s\", \"rb\"): ", filename);
+  testBegin("fopen(\"%s\", \"rb\")", filename);
   if ((fp = fopen(filename, "rb")) == NULL)
   {
-    printf("FAIL (%s)\n", strerror(errno));
+    testEndMessage(false, "%s", strerror(errno));
     errors ++;
   }
   else
   {
-    printf("PASS (%d)\n", fileno(fp));
-    printf("fstat(%d): ", fileno(fp));
+    testEndMessage(true, "%d", fileno(fp));
+    testBegin("fstat(%d)", fileno(fp));
     if (fstat(fileno(fp), &fileinfo))
     {
-      printf("FAIL (%s)\n", strerror(errno));
+      testEndMessage(false, "%s", strerror(errno));
       errors ++;
     }
     else
     {
-      printf("PASS (%lu bytes)\n", (unsigned long)fileinfo.st_size);
+      testEndMessage(true, "%lu bytes", (unsigned long)fileinfo.st_size);
 
-      fputs("malloc(): ", stdout);
+      testBegin("malloc(%lu)", (unsigned long)fileinfo.st_size);
       if ((data = malloc((size_t)fileinfo.st_size)) == NULL)
       {
-	printf("FAIL (%s)\n", strerror(errno));
+	testEndMessage(false, "%s", strerror(errno));
 	errors ++;
       }
       else
       {
-	puts("PASS");
-        fputs("fread(): ", stdout);
+	testEnd(true);
+        testBegin("fread(%lu)", (unsigned long)fileinfo.st_size);
         if (fread(data, (size_t)fileinfo.st_size, 1, fp) != 1)
         {
-	  printf("FAIL (%s)\n", strerror(errno));
+	  testEndMessage(false, "%s", strerror(errno));
 	  errors ++;
         }
         else
         {
-          puts("PASS");
-          fputs("ttfCreateData(): ", stdout);
+          testEnd(true);
+          testBegin("ttfCreateData()");
           if ((font = ttfCreateData(data, (size_t)fileinfo.st_size, /*idx*/0, error_cb, /*err_data*/NULL)) == NULL)
           {
-            puts("FAIL");
             errors ++;
           }
           else
           {
-            puts("PASS");
+            testEnd(true);
 
-	    fputs("ttfGetPostScriptName: ", stdout);
+	    testBegin("ttfGetPostScriptName");
 	    if ((value = ttfGetPostScriptName(font)) != NULL)
 	    {
 	      if (!strcmp(value, psname))
 	      {
-		printf("PASS (%s)\n", value);
+		testEndMessage(true, "%s", value);
 	      }
 	      else
 	      {
-		printf("FAIL (got \"%s\", expected \"%s\")\n", value, psname);
+		testEndMessage(false, "got \"%s\", expected \"%s\"", value, psname);
 		errors ++;
 	      }
 	    }
 	    else
 	    {
-	      puts("FAIL");
+	      testEnd(false);
 	      errors ++;
 	    }
           }

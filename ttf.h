@@ -1,7 +1,7 @@
 //
 // Header file for TTF library
 //
-//     https://github.com/michaelrsweet/ttf
+// https://www.msweet.org/ttf
 //
 // Copyright © 2018-2025 by Michael R Sweet.
 //
@@ -81,16 +81,17 @@ typedef struct ttf_rect_s	// Bounding rectangle
 //
 
 extern void		ttfCacheAdd(ttf_cache_t *cache, ttf_t *font, const char *filename);
+extern ttf_cache_t      *ttfCacheCreate(const char *appname, ttf_err_cb_t err_cb, void *err_data);
 extern void             ttfCacheDelete(ttf_cache_t *cache);
 extern ttf_t            *ttfCacheFind(ttf_cache_t *cache, const char *family, ttf_style_t style, ttf_weight_t weight, ttf_stretch_t stretch);
 extern const char       *ttfCacheGetFilename(ttf_cache_t *cache, size_t n);
 extern const char       *ttfCacheGetFamily(ttf_cache_t *cache, size_t n);
+extern size_t		ttfCacheGetIndex(ttf_cache_t *cache, size_t n);
 extern ttf_stretch_t    ttfCacheGetStretch(ttf_cache_t *cache, size_t n);
 extern ttf_style_t      ttfCacheGetStyle(ttf_cache_t *cache, size_t n);
 extern ttf_weight_t     ttfCacheGetWeight(ttf_cache_t *cache, size_t n);
 extern ttf_t            *ttfCacheGetFont(ttf_cache_t *cache, size_t n);
 extern size_t           ttfCacheGetNumFonts(ttf_cache_t *cache);
-extern ttf_cache_t      *ttfCacheNew(const char *appname);
 extern ttf_t		*ttfCreate(const char *filename, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 extern ttf_t		*ttfCreateData(const void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 
