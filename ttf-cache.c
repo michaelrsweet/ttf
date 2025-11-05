@@ -38,6 +38,8 @@ struct _ttf_cache_s			// Font cache
 		alloc_fonts;		// Allocated cached fonts
   _ttf_cfont_t	*fonts;			// Cached fonts
   size_t	font_index[256];	// Index for fonts
+  const char	*current_name;		// Current font filename
+  size_t	current_index;		// Current font index
 };
 
 
@@ -46,6 +48,7 @@ struct _ttf_cache_s			// Font cache
 //
 
 static void	ttf_add_font(ttf_cache_t *cache, ttf_t *font, const char *filename, size_t idx, bool delete_it);
+static void	ttf_cache_err_cb(ttf_cache_t *cache, const char *message);
 static int	ttf_compare_fonts(_ttf_cfont_t *a, _ttf_cfont_t *b);
 static bool	ttf_load_cache(ttf_cache_t *cache, struct stat *cinfo);
 static time_t	ttf_load_fonts(ttf_cache_t *cache, const char *d, int depth, bool scanonly);
@@ -435,6 +438,34 @@ ttf_add_font(ttf_cache_t *cache,	// I - Font cache
 
 
 //
+// 'ttf_cache_err_cb()' - Report an error with the current font filename.
+//
+
+static void
+ttf_cache_err_cb(ttf_cache_t *cache,	// I - Font cache
+                 const char  *message)	// I - Error message
+{
+  char	xmessage[2048];			// Extended message
+
+
+  if (cache->current_name)
+  {
+    if (cache->current_index)
+      snprintf(xmessage, sizeof(xmessage), "%s(%u): %s", cache->current_name, (unsigned)cache->current_index, message);
+    else
+      snprintf(xmessage, sizeof(xmessage), "%s: %s", cache->current_name, message);
+
+    message = xmessage;
+  }
+
+  if (cache->err_cb)
+    (cache->err_cb)(cache->err_cbdata, message);
+  else
+    fprintf(stderr, "%s\n", message);
+}
+
+
+//
 // 'ttf_compare_fonts()' - Compare two font cache fonts.
 //
 
@@ -535,7 +566,10 @@ ttf_load_fonts(ttf_cache_t *cache,	// I - Font cache
     if (strcmp(ext, ".otc") && strcmp(ext, ".otf") && strcmp(ext, ".ttc") && strcmp(ext, ".ttf"))
       continue;
 
-    if ((font = ttfCreate(filename, /*idx*/0, cache->err_cb, cache->err_cbdata)) != NULL)
+    cache->current_name  = filename;
+    cache->current_index = 0;
+
+    if ((font = ttfCreate(filename, /*idx*/0, (ttf_err_cb_t)ttf_cache_err_cb, cache)) != NULL)
     {
       const char *family = ttfGetFamily(font);
 					// Font family name
@@ -557,7 +591,9 @@ ttf_load_fonts(ttf_cache_t *cache,	// I - Font cache
 
 	for (i = 1; i < num_fonts; i ++)
 	{
-	  if ((font = ttfCreate(filename, /*idx*/i, cache->err_cb, cache->err_cbdata)) != NULL)
+	  cache->current_index = i;
+
+	  if ((font = ttfCreate(filename, /*idx*/i, (ttf_err_cb_t)ttf_cache_err_cb, cache)) != NULL)
 	  {
 	    if ((family = ttfGetFamily(font)) != NULL && *family != '.')
 	      ttf_add_font(cache, font, filename, /*idx*/i, /*delete_it*/true);

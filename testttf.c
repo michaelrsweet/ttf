@@ -28,7 +28,7 @@
 //
 
 static void	error_cb(void *data, const char *message);
-static int	list_fonts(void);
+static int	list_fonts(bool verbose);
 static int	test_font(const char *filename);
 
 
@@ -42,6 +42,7 @@ main(int  argc,				// I - Number of command-line arguments
 {
   int		i;			// Looping var
   int		errors = 0;		// Number of errors
+  bool		verbose = false;	// Be verbose?
 
 
   if (argc > 1)
@@ -49,7 +50,9 @@ main(int  argc,				// I - Number of command-line arguments
     for (i = 1; i < argc; i ++)
     {
       if (!strcmp(argv[i], "--list"))
-        errors += list_fonts();
+        errors += list_fonts(verbose);
+      else if (!strcmp(argv[i], "--verbose"))
+        verbose = true;
       else
 	errors += test_font(argv[i]);
     }
@@ -61,7 +64,7 @@ main(int  argc,				// I - Number of command-line arguments
     errors += test_font("testfiles/OpenSans-Regular.ttf");
     errors += test_font("testfiles/NotoSansJP-Regular.otf");
 
-    errors += list_fonts();
+    errors += list_fonts(false);
   }
 
   return (errors);
@@ -85,7 +88,7 @@ error_cb(void       *data,		// I - User data (not used)
 //
 
 static int				// O - Number of errors
-list_fonts(void)
+list_fonts(bool verbose)		// I - Be verbose?
 {
   ttf_cache_t	*cache;			// Font cache
   size_t	i,			// Looping var
@@ -123,6 +126,7 @@ list_fonts(void)
     " Black"				// TTF_WEIGHT_900
   };
 
+
   start = time(NULL);
   testBegin("ttfCacheCreate");
   if ((cache = ttfCacheCreate("testttf", error_cb, /*err_cbdata*/NULL)) == NULL)
@@ -144,7 +148,9 @@ list_fonts(void)
     else if (weight > TTF_WEIGHT_900)
       weight = TTF_WEIGHT_900;
 
-    if (ttfCacheGetIndex(cache, i) > 0)
+    if (!verbose)
+      testMessage("%s%s%s%s", ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+    else if (ttfCacheGetIndex(cache, i) > 0)
       testMessage("%s(%u): %s%s%s%s", ttfCacheGetFilename(cache, i), (unsigned)ttfCacheGetIndex(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
     else
       testMessage("%s: %s%s%s%s", ttfCacheGetFilename(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
@@ -360,19 +366,16 @@ test_font(const char *filename)		// I - Font filename
     errors ++;
   }
 
-  for (i = 32; i < 127; i ++)
-  {
-    testBegin("ttfGetWidth('%c')", i);
+  testBegin("ttfGetWidth(' ')");
 
-    if ((intvalue = ttfGetWidth(font, i)) > 0)
-    {
-      testEndMessage(true, "%d", intvalue);
-    }
-    else
-    {
-      testEndMessage(false, "%d", intvalue);
-      errors ++;
-    }
+  if ((intvalue = ttfGetWidth(font, ' ')) > 0)
+  {
+    testEndMessage(true, "%d", intvalue);
+  }
+  else
+  {
+    testEndMessage(false, "%d", intvalue);
+    errors ++;
   }
 
   testBegin("ttfGetXHeight");

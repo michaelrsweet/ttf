@@ -25,6 +25,7 @@
 // TTF/OFF tag constants...
 //
 
+#define TTF_OFF_bhed	0x62686564	// Bitmap font header
 #define TTF_OFF_cmap	0x636d6170	// Character to glyph mapping
 #define TTF_OFF_head	0x68656164	// Font header
 #define TTF_OFF_hhea	0x68686561	// Horizontal header
@@ -110,7 +111,7 @@ struct _ttf_s
   size_t	data_offset;		// Offset within input
   size_t	idx;			// Font number in file
   ttf_err_cb_t	err_cb;			// Error callback, if any
-  void		*err_data;		// Error callback data
+  void		*err_cbdata;		// Error callback data
   _ttf_off_table_t table;		// Offset table
   _ttf_off_names_t names;		// Names
   size_t	num_fonts;		// Number of fonts in this file
@@ -210,7 +211,7 @@ typedef struct _ttf_off_post_s		// PostScript information
 //
 
 static char	*copy_name(ttf_t *font, unsigned name_id);
-static ttf_t	*create_font(const char *filename, const void *data, size_t datasize, size_t idx, ttf_err_cb_t err_cb, void *err_data);
+static ttf_t	*create_font(const char *filename, const void *data, size_t datasize, size_t idx, ttf_err_cb_t err_cb, void *err_cbdata);
 static void	errorf(ttf_t *font, const char *message, ...) TTF_FORMAT_ARGS(2,3);
 static size_t	fd_read_cb(ttf_t *font, void *buffer, size_t bytes);
 static bool	fd_seek_cb(ttf_t *font, size_t offset);
@@ -243,13 +244,13 @@ static unsigned	seek_table(ttf_t *font, unsigned tag, unsigned offset, bool requ
 // function to determine whether the loaded font file is a collection with more
 // than one font.
 //
-// The "err_cb" and "err_data" arguments specify a callback function and data
+// The "err_cb" and "err_cbdata" arguments specify a callback function and data
 // pointer for receiving error messages.  If `NULL`, errors are sent to the
 // `stderr` file.  The callback function receives the data pointer and a text
 // message string, for example:
 //
 // ```
-// void my_err_cb(void *err_data, const char *message)
+// void my_err_cb(void *err_cbdata, const char *message)
 // {
 //   fprintf(stderr, "ERROR: %s\n", message);
 // }
@@ -260,9 +261,9 @@ ttf_t *					// O - New font object
 ttfCreate(const char   *filename,	// I - Filename
           size_t       idx,		// I - Font number to create in collection (0-based)
           ttf_err_cb_t err_cb,		// I - Error callback or `NULL` to log to stderr
-          void         *err_data)	// I - Error callback data
+          void         *err_cbdata)	// I - Error callback data
 {
-  TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_data=%p)\n", filename, (unsigned)idx, (void *)err_cb, err_data);
+  TTF_DEBUG("ttfCreate(filename=\"%s\", idx=%u, err_cb=%p, err_cbdata=%p)\n", filename, (unsigned)idx, (void *)err_cb, err_cbdata);
 
   // Range check input..
   if (!filename)
@@ -272,7 +273,7 @@ ttfCreate(const char   *filename,	// I - Filename
   }
 
   // Open and return the font...
-  return (create_font(filename, /*data*/NULL, /*datasize*/0, idx, err_cb, err_data));
+  return (create_font(filename, /*data*/NULL, /*datasize*/0, idx, err_cb, err_cbdata));
 }
 
 
@@ -291,13 +292,13 @@ ttfCreate(const char   *filename,	// I - Filename
 // function to determine whether the loaded font file is a collection with more
 // than one font.
 //
-// The "err_cb" and "err_data" arguments specify a callback function and data
+// The "err_cb" and "err_cbdata" arguments specify a callback function and data
 // pointer for receiving error messages.  If `NULL`, errors are sent to the
 // `stderr` file.  The callback function receives the data pointer and a text
 // message string, for example:
 //
 // ```
-// void my_err_cb(void *err_data, const char *message)
+// void my_err_cb(void *err_cbdata, const char *message)
 // {
 //   fprintf(stderr, "ERROR: %s\n", message);
 // }
@@ -309,9 +310,9 @@ ttfCreateData(const void   *data,	// I - Buffer
               size_t       datasize,	// I - Size of buffer in bytes
 	      size_t       idx,		// I - Font number to create in collection (0-based)
 	      ttf_err_cb_t err_cb,	// I - Error callback or `NULL` to log to stderr
-	      void         *err_data)	// I - Error callback data
+	      void         *err_cbdata)	// I - Error callback data
 {
-  TTF_DEBUG("ttfCreateData(data=%p, datasize=%lu, idx=%u, err_cb=%p, err_data=%p)\n", data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_data);
+  TTF_DEBUG("ttfCreateData(data=%p, datasize=%lu, idx=%u, err_cb=%p, err_cbdata=%p)\n", data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_cbdata);
 
   // Range check input..
   if (!data || datasize == 0)
@@ -321,7 +322,7 @@ ttfCreateData(const void   *data,	// I - Buffer
   }
 
   // Open and return the font...
-  return (create_font(/*filename*/NULL, data, datasize, idx, err_cb, err_data));
+  return (create_font(/*filename*/NULL, data, datasize, idx, err_cb, err_cbdata));
 }
 
 
@@ -856,7 +857,7 @@ create_font(const char   *filename,	// I - Filename of `NULL`
             size_t       datasize,	// I - Size of data or 0
             size_t       idx,		// I - Font index
             ttf_err_cb_t err_cb,	// I - Error callback function
-            void         *err_data)	// I - Error callback data
+            void         *err_cbdata)	// I - Error callback data
 {
   ttf_t			*font = NULL;	// New font object
   size_t		i;		// Looping var
@@ -865,9 +866,10 @@ create_font(const char   *filename,	// I - Filename of `NULL`
   _ttf_off_hhea_t	hhea;		// hhea table
   _ttf_off_os_2_t	os_2;		// OS/2 table
   _ttf_off_post_t	post;		// PostScript table
+  _ttf_metric_t		defWidth;	// Default glyph width
 
 
-  TTF_DEBUG("create_font(filename=\"%s\", data=%p, datasize=%lu, idx=%u, err_cb=%p, err_data=%p)\n", filename, data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_data);
+  TTF_DEBUG("create_font(filename=\"%s\", data=%p, datasize=%lu, idx=%u, err_cb=%p, err_cbdata=%p)\n", filename, data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_cbdata);
 
   // Allocate memory...
   if ((font = (ttf_t *)calloc(1, sizeof(ttf_t))) == NULL)
@@ -875,7 +877,7 @@ create_font(const char   *filename,	// I - Filename of `NULL`
 
   font->idx      = idx;
   font->err_cb   = err_cb;
-  font->err_data = err_data;
+  font->err_cbdata = err_cbdata;
 
   if (filename)
   {
@@ -967,11 +969,6 @@ create_font(const char   *filename,	// I - Filename of `NULL`
     if ((widths = read_hmtx(font, &hhea)) == NULL)
       goto error;
   }
-  else
-  {
-    errorf(font, "Number of horizontal metrics is 0.");
-    goto error;
-  }
 
   if (read_os_2(font, &os_2))
   {
@@ -1013,6 +1010,18 @@ create_font(const char   *filename,	// I - Filename of `NULL`
   // Build a sparse glyph widths table...
   font->min_char = -1;
 
+  if (hhea.numberOfHMetrics == 0)
+  {
+    // Default width is computed from the head/bhed information...
+    defWidth.width        = head.xMax - head.xMin;
+    defWidth.left_bearing = head.xMin;
+  }
+  else
+  {
+    // Default width is the last one...
+    defWidth = widths[hhea.numberOfHMetrics - 1];
+  }
+
   for (i = 0; i < font->num_cmap; i ++)
   {
     if (font->cmap[i] >= 0)
@@ -1030,18 +1039,18 @@ create_font(const char   *filename,	// I - Filename of `NULL`
       if (!font->widths[bin])
         font->widths[bin] = (_ttf_metric_t *)calloc(256, sizeof(_ttf_metric_t));
 
-      // Copy the width of the specified glyph or the last one if we are past
+      // Copy the width of the specified glyph or the default one if we are past
       // the end of the table...
       if (glyph >= hhea.numberOfHMetrics)
-	font->widths[bin][i & 255] = widths[hhea.numberOfHMetrics - 1];
+	font->widths[bin][i & 255] = defWidth;
       else
 	font->widths[bin][i & 255] = widths[glyph];
     }
 
-#ifdef DEBUG
+#if DEBUG > 1
     if (i >= ' ' && i < 127 && font->widths[0])
       TTF_DEBUG("create_font: width['%c']=%d(%d)\n", (char)i, font->widths[0][i].width, font->widths[0][i].left_bearing);
-#endif // DEBUG
+#endif // DEBUG > 1
   }
 
   // Cleanup and return the font...
@@ -1080,9 +1089,9 @@ errorf(ttf_t      *font,		// I - Font
   // If an error callback is set, sent the message there.  Otherwise write it
   // to stderr...
   if (font && font->err_cb)
-    (font->err_cb)(font->err_data, buffer);
+    (font->err_cb)(font->err_cbdata, buffer);
   else
-    fprintf(stderr, "%s\n", message);
+    fprintf(stderr, "%s\n", buffer);
 }
 
 
@@ -1291,7 +1300,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if ((unsigned)read_ushort(font) == (unsigned)-1)
 	  {
-	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    errorf(font, "Unable to read cmap format 0 table length at offset %u.", coffset);
 	    return (false);
 	  }
 
@@ -1299,7 +1308,7 @@ read_cmap(ttf_t *font)			// I - Font
 
           if (length > (256 + 6) || length < 7)
           {
-	    errorf(font, "Bad cmap table length at offset %u.", coffset);
+	    errorf(font, "Bad cmap format 0 table length %u at offset %u.", length, coffset);
 	    return (false);
           }
 
@@ -1343,7 +1352,7 @@ read_cmap(ttf_t *font)			// I - Font
           // Read the table...
 	  if ((clength = (unsigned)read_ushort(font)) == (unsigned)-1)
 	  {
-	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    errorf(font, "Unable to read cmap format 4 table length at offset %u.", coffset);
 	    return (false);
 	  }
 
@@ -1359,7 +1368,7 @@ read_cmap(ttf_t *font)			// I - Font
 
           if (segCount < 2)
           {
-	    errorf(font, "Bad cmap table.");
+	    errorf(font, "Bad cmap format 4 table - segment count is %d.", segCount);
 	    return (false);
           }
 
@@ -1412,14 +1421,14 @@ read_cmap(ttf_t *font)			// I - Font
 	      font->num_cmap = segment->endCode + 1;
           }
 
-#ifdef DEBUG
+#if DEBUG > 1
           for (i = 0; i < numGlyphIdArray; i ++)
             TTF_DEBUG("read_cmap: glyphIdArray[%d]=%d\n", i, glyphIdArray[i]);
-#endif /* DEBUG */
+#endif /* DEBUG > 1 */
 
 	  if (font->num_cmap == 0 || font->num_cmap > TTF_FONT_MAX_CHAR)
 	  {
-	    errorf(font, "Invalid cmap table with %u characters.", (unsigned)font->num_cmap);
+	    errorf(font, "Invalid cmap format 4 table with %u characters.", (unsigned)font->num_cmap);
 	    free(segments);
 	    free(glyphIdArray);
 	    return (false);
@@ -1449,7 +1458,10 @@ read_cmap(ttf_t *font)			// I - Font
                 // mine) to look up the glyph index...
                 temp = (int)(segment->idRangeOffset / 2 - segCount + (ch - segment->startCode) + (segment - segments));
 
+#if DEBUG > 1
                 TTF_DEBUG("read_cmap: ch=%d, temp=%d\n", ch, temp);
+#endif // DEBUG > 1
+
                 if (temp < 0 || temp >= numGlyphIdArray)
                   glyph = -1;
 		else
@@ -1487,7 +1499,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (read_ulong(font) == 0)
 	  {
-	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    errorf(font, "Unable to read cmap format 12 table length at offset %u.", coffset);
 	    return (false);
 	  }
 
@@ -1498,7 +1510,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (nGroups > TTF_FONT_MAX_GROUPS)
 	  {
-	    errorf(font, "Invalid cmap table with %u groups.", nGroups);
+	    errorf(font, "Invalid cmap format 12 table with %u groups.", nGroups);
 	    return (false);
 	  }
 
@@ -1586,7 +1598,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (read_ulong(font) == 0)
 	  {
-	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    errorf(font, "Unable to read cmap format 13 table length at offset %u.", coffset);
 	    return (false);
 	  }
 
@@ -1597,7 +1609,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 	  if (nGroups > TTF_FONT_MAX_GROUPS)
 	  {
-	    errorf(font, "Invalid cmap table with %u groups.", nGroups);
+	    errorf(font, "Invalid cmap format 13 table with %u groups.", nGroups);
 	    return (false);
 	  }
 
@@ -1680,7 +1692,7 @@ read_cmap(ttf_t *font)			// I - Font
 	  // Read the table...
 	  if (read_ulong(font) == 0)
 	  {
-	    errorf(font, "Unable to read cmap table length at offset %u.", coffset);
+	    errorf(font, "Unable to read cmap format 14 table length at offset %u.", coffset);
 	    return (false);
 	  }
 	}
@@ -1688,7 +1700,7 @@ read_cmap(ttf_t *font)			// I - Font
 #endif // 0
 
     default :
-        errorf(font, "Format %d cmap tables are not yet supported.", cformat);
+        errorf(font, "Unsupported cmap format %d tables.", cformat);
         return (false);
   }
 
@@ -1706,7 +1718,7 @@ read_cmap(ttf_t *font)			// I - Font
 
 
 //
-// 'read_head()' - Read the head table.
+// 'read_head()' - Read the head/bhed table.
 //
 
 static bool				// O - `true` on success, `false` on error
@@ -1715,8 +1727,11 @@ read_head(ttf_t           *font,	// I - Font
 {
   memset(head, 0, sizeof(_ttf_off_head_t));
 
-  if (seek_table(font, TTF_OFF_head, 0, true) == 0)
-    return (false);
+  if (seek_table(font, TTF_OFF_head, 0, false) == 0)
+  {
+    if (seek_table(font, TTF_OFF_bhed, 0, true) == 0)
+      return (false);
+  }
 
   /* majorVersion */       read_ushort(font);
   /* minorVersion */       read_ushort(font);
@@ -1750,8 +1765,8 @@ read_hhea(ttf_t           *font,	// I - Font
 
   memset(hhea, 0, sizeof(_ttf_off_hhea_t));
 
-  if (seek_table(font, TTF_OFF_hhea, 0, true) == 0)
-    return (false);
+  if (seek_table(font, TTF_OFF_hhea, 0, false) == 0)
+    return (true);
 
   /* majorVersion */        read_ushort(font);
   /* minorVersion */        read_ushort(font);
@@ -2047,9 +2062,12 @@ read_table(ttf_t  *font)		// I - Font
   //     USHORT entrySelector
   //     USHORT rangeShift
   /* sfnt version */
-  if ((temp = read_ulong(font)) != 0x10000 && temp != 0x4f54544f && temp != 0x74746366)
+  if ((temp = read_ulong(font)) != 0x10000 /* 1.0 */ &&
+      temp != 0x4f54544f /* OTTO */ &&
+      temp != 0x74727565 /* true */ &&
+      temp != 0x74746366 /* ttcf */)
   {
-    errorf(font, "Invalid font file.");
+    errorf(font, "Invalid font file - version is 0x%08x.", temp);
     return (false);
   }
 
