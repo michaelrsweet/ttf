@@ -35,8 +35,8 @@
 #define TTF_OFF_OS_2	0x4f532f32	// OS/2 and Windows specific metrics
 #define TTF_OFF_post	0x706f7374	// PostScript information
 
-#define TTF_OFF_Unicode	0	// Unicode platform ID
-
+#define TTF_OFF_Unicode		0	// Unicode platform ID
+#define TTF_OFF_Unicode_Variants 5	// Unicode with variation sequences
 #define TTF_OFF_Mac		1	// Macintosh platform ID
 #define TTF_OFF_Mac_Roman	0	// Macintosh Roman encoding ID
 #define TTF_OFF_Mac_USEnglish	0	// Macintosh US English language ID
@@ -1258,7 +1258,7 @@ read_cmap(ttf_t *font)			// I - Font
 
     TTF_DEBUG("read_cmap: table[%d].platform_id=%d, encoding_id=%d, coffset=%u\n", i, platform_id, encoding_id, coffset);
 
-    if (platform_id == TTF_OFF_Unicode || (platform_id == TTF_OFF_Windows && encoding_id == TTF_OFF_Windows_UCS2))
+    if ((platform_id == TTF_OFF_Unicode && encoding_id != TTF_OFF_Unicode_Variants) || (platform_id == TTF_OFF_Windows && (encoding_id == TTF_OFF_Windows_UCS2 || encoding_id == TTF_OFF_Windows_UCS4)))
       break;
 
     if (platform_id == TTF_OFF_Mac && encoding_id == TTF_OFF_Mac_Roman)
@@ -1687,26 +1687,6 @@ read_cmap(ttf_t *font)			// I - Font
 	  free(groups);
 	}
         break;
-
-#if 0
-    case 14 :
-	{
-	  // Format 14: Unicode variation sequences
-	  unsigned	ch,		// Current character
-			gidx,		// Current group
-			nGroups;	// Number of groups
-	  _ttf_off_cmap13_t *groups,	// Groups
-			*group;		// This group
-
-	  // Read the table...
-	  if (read_ulong(font) == 0)
-	  {
-	    errorf(font, "Unable to read cmap format 14 table length at offset %u.", coffset);
-	    return (false);
-	  }
-	}
-	break;
-#endif // 0
 
     default :
         errorf(font, "Unsupported cmap format %d tables.", cformat);
