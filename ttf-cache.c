@@ -267,11 +267,73 @@ ttfCacheFind(ttf_cache_t   *cache,	// I - Font cache
              ttf_weight_t  weight,	// I - Font weight or `TTF_WEIGHT_UNSPEC`
              ttf_stretch_t stretch)	// I - Font stretch or `TTF_STRETCH_UNSPEC`
 {
-  (void)cache;
-  (void)family;
-  (void)style;
-  (void)weight;
-  (void)stretch;
+  size_t	i;			// Looping var
+  _ttf_cfont_t	*font,			// Current font
+		*best_font = NULL;	// Best font
+  int		result,			// Result of compare
+		score,			// Current score
+		best_score = 999999;	// Best score
+
+
+  TTF_DEBUG("ttfCacheFind(cache=%p, family=\"%s\", style=%d, weight=%d, stretch=%d)\n", (void *)cache, family, style, weight, stretch);
+
+  // Range check input...
+  if (!cache || !family)
+    return (NULL);
+
+  // Loop through the cache looking for a match...
+  for (i = cache->font_index[tolower(*family & 255)], font = cache->fonts + i; i < cache->num_fonts; i ++, font ++)
+  {
+    result = strcasecmp(font->family, family);
+
+    TTF_DEBUG("ttfCacheFind: [%u] family=\"%s\", weight=%d, style=%d, stretch=%d, result=%d\n", (unsigned)i, font->family, font->weight, font->style, font->stretch, result);
+
+    if (result < 0)
+      continue;
+    else if (result > 0)
+      break;
+
+    if (weight == TTF_WEIGHT_UNSPEC)
+      score = 0;
+    else if (font->weight > weight)
+      score = (int)(font->weight - weight);
+    else
+      score = (int)(weight - font->weight);
+
+    if (stretch != TTF_STRETCH_UNSPEC)
+    {
+      if (font->stretch > stretch)
+        score += (int)(font->stretch - stretch) * 10;
+      else
+        score += (int)(stretch - font->stretch) * 10;
+    }
+
+    if (style != TTF_STYLE_UNSPEC && (style != TTF_STYLE_NORMAL) != (font->style != TTF_STYLE_NORMAL))
+      score ++;
+
+    TTF_DEBUG("ttfCacheFind: [%u] score=%d\n", (unsigned)i, score);
+
+    if (score < best_score)
+    {
+      best_score = score;
+      best_font  = font;
+
+      if (score == 0)
+        break;
+    }
+  }
+
+  TTF_DEBUG("ttfCacheFind: best_font=%p(%p)\n", (void *)best_font, best_font ? (void *)best_font->font : NULL);
+
+  if (best_font)
+  {
+    // Load the font as needed...
+    if (!best_font->font && best_font->filename)
+      best_font->font = ttfCreate(best_font->filename, best_font->idx, cache->err_cb, cache->err_cbdata);
+
+    // Return the matching font...
+    return (best_font->font);
+  }
 
   return (NULL);
 }
@@ -418,7 +480,7 @@ ttf_add_font(ttf_cache_t *cache,	// I - Font cache
 
   memset(cfont, 0, sizeof(_ttf_cfont_t));
 
-  cfont->font     = font;
+  cfont->font     = delete_it ? NULL : font;
   cfont->filename = filename ? strdup(filename) : NULL;
   cfont->idx      = idx;
   cfont->stretch  = ttfGetStretch(font);

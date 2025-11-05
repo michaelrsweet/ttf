@@ -28,7 +28,9 @@
 //
 
 static void	error_cb(void *data, const char *message);
+static char	*format_name(char *buffer, size_t bufsize, const char *family, ttf_style_t fstyle, ttf_weight_t fweight, ttf_stretch_t fstretch);
 static int	list_fonts(bool verbose);
+static void	test_find_font(ttf_cache_t *cache, const char *family, ttf_style_t fstyle, ttf_weight_t fweight, ttf_stretch_t fstretch);
 static int	test_font(const char *filename);
 
 
@@ -84,20 +86,22 @@ error_cb(void       *data,		// I - User data (not used)
 
 
 //
-// 'list_fonts()' - List available fonts.
+// 'format_name()' - Format a font name.
 //
 
-static int				// O - Number of errors
-list_fonts(bool verbose)		// I - Be verbose?
+static char *				// O - Formatted font name
+format_name(char          *buffer,	// I - String buffer
+            size_t        bufsize,	// I - Size of string buffer
+            const char    *family,	// I - Font family
+            ttf_style_t   fstyle,	// I - Font style
+            ttf_weight_t  fweight,	// I - Font weight
+            ttf_stretch_t fstretch)	// I - Font stretch
 {
-  ttf_cache_t	*cache;			// Font cache
-  size_t	i,			// Looping var
-		num_fonts;		// Number of fonts
-  time_t	start,			// Start time
-		end;			// End time
+  int	weight;				// Weight index
   static const char * const stretches[] =
   {					// Font stretch values
-    " Normal",				// TTF_STRETCH_NORMAL
+    " <AnyStretch>",			// TTF_STRETCH_UNSPEC
+    "",					// TTF_STRETCH_NORMAL
     " Ultra-Condensed",			// TTF_STRETCH_ULTRA_CONDENSED
     " Extra-Condensed",			// TTF_STRETCH_EXTRA_CONDENSED
     " Condensed",			// TTF_STRETCH_CONDENSED
@@ -109,12 +113,14 @@ list_fonts(bool verbose)		// I - Be verbose?
   };
   static const char * const styles[] =	// Font styles
   {
+    " <AnyStyle>",			// TTF_STYLE_UNSPEC
     "",					// TTF_STYLE_NORMAL
     " Italic",				// TTF_STYLE_ITALIC
     " Oblique"				// TTF_STYLE_OBLIQUE
   };
   static const char * const weights[] =	// Font weights
   {
+    " <AnyWeight>",			// TTF_WEIGHT_UNSPEC
     " Thin",				// TTF_WEIGHT_100
     " Extra-Light",			// TTF_WEIGHT_200
     " Light",				// TTF_WEIGHT_300
@@ -125,6 +131,34 @@ list_fonts(bool verbose)		// I - Be verbose?
     " Extra-Bold",			// TTF_WEIGHT_800
     " Black"				// TTF_WEIGHT_900
   };
+
+
+  if (fweight < TTF_WEIGHT_100)
+    weight = 0;
+  else if (fweight > TTF_WEIGHT_900)
+    weight = 9;
+  else
+    weight = (int)fweight / 100;
+
+  snprintf(buffer, bufsize, "%s%s%s%s", family, stretches[fstretch - TTF_STRETCH_UNSPEC], weights[weight], styles[fstyle - TTF_STYLE_UNSPEC]);
+
+  return (buffer);
+}
+
+
+//
+// 'list_fonts()' - List available fonts.
+//
+
+static int				// O - Number of errors
+list_fonts(bool verbose)		// I - Be verbose?
+{
+  ttf_cache_t	*cache;			// Font cache
+  size_t	i,			// Looping var
+		num_fonts;		// Number of fonts
+  time_t	start,			// Start time
+		end;			// End time
+  char		name[256];		// Font name
 
 
   start = time(NULL);
@@ -139,24 +173,51 @@ list_fonts(bool verbose)		// I - Be verbose?
 
   for (i = 0; i < num_fonts; i ++)
   {
-    ttf_stretch_t stretch = ttfCacheGetStretch(cache, i);
-    ttf_style_t style = ttfCacheGetStyle(cache, i);
-    ttf_weight_t weight = ttfCacheGetWeight(cache, i);
-
-    if (weight < TTF_WEIGHT_100)
-      weight = TTF_WEIGHT_100;
-    else if (weight > TTF_WEIGHT_900)
-      weight = TTF_WEIGHT_900;
+    format_name(name, sizeof(name), ttfCacheGetFamily(cache, i), ttfCacheGetStyle(cache, i), ttfCacheGetWeight(cache, i), ttfCacheGetStretch(cache, i));
 
     if (!verbose)
-      testMessage("%s%s%s%s", ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+      testMessage("    %s", name);
     else if (ttfCacheGetIndex(cache, i) > 0)
-      testMessage("%s(%u): %s%s%s%s", ttfCacheGetFilename(cache, i), (unsigned)ttfCacheGetIndex(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+      testMessage("    %s(%u): %s", ttfCacheGetFilename(cache, i), (unsigned)ttfCacheGetIndex(cache, i), name);
     else
-      testMessage("%s: %s%s%s%s", ttfCacheGetFilename(cache, i), ttfCacheGetFamily(cache, i), stretches[stretch], weights[weight / 100 - 1], styles[style]);
+      testMessage("    %s: %s", ttfCacheGetFilename(cache, i), name);
   }
 
+#if _WIN32
+  test_find_font(cache, "Arial", TTF_STYLE_UNSPEC, TTF_WEIGHT_UNSPEC, TTF_STRETCH_UNSPEC);
+  test_find_font(cache, "Arial", TTF_STYLE_NORMAL, TTF_WEIGHT_700, TTF_STRETCH_UNSPEC);
+
+#else
+  test_find_font(cache, "Helvetica", TTF_STYLE_UNSPEC, TTF_WEIGHT_UNSPEC, TTF_STRETCH_UNSPEC);
+  test_find_font(cache, "Helvetica", TTF_STYLE_NORMAL, TTF_WEIGHT_700, TTF_STRETCH_UNSPEC);
+#endif // _WIN32
+
+  test_find_font(cache, "Courier", TTF_STYLE_OBLIQUE, TTF_WEIGHT_UNSPEC, TTF_STRETCH_UNSPEC);
+
   return (0);
+}
+
+
+//
+// 'test_find_font()' - Test finding a font.
+//
+
+static void
+test_find_font(ttf_cache_t   *cache,	// I - Font cache
+	       const char    *family,	// I - Font family
+	       ttf_style_t   fstyle,	// I - Font style
+	       ttf_weight_t  fweight,	// I - Font weight
+	       ttf_stretch_t fstretch)	// I - Font stretch
+{
+  ttf_t	*font;				// Matching font
+  char	name[256];			// Font name
+
+
+  testBegin("ttfCacheFind(%s)", format_name(name, sizeof(name), family, fstyle, fweight, fstretch));
+  if ((font = ttfCacheFind(cache, family, fstyle, fweight, fstretch)) != NULL)
+    testEndMessage(true, "%s", format_name(name, sizeof(name), ttfGetFamily(font), ttfGetStyle(font), ttfGetWeight(font), ttfGetStretch(font)));
+  else
+    testEnd(false);
 }
 
 
