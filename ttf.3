@@ -192,6 +192,15 @@ void ttfCacheAdd (
     const char *filename
 );
 .fi
+.PP
+This function adds the specified font to the cache.
+.PP
+.IP 5
+\fBNote\fR: Once added, the cache takes over management of the font.  Do not
+.IP 5
+call \fIttfDelete\fR with the font pointer.  Instead, the font will be
+.IP 5
+freed when you call \fIttfCacheDelete\fR to free the cache.
 .SS ttfCacheCreate
 Create a cache of system and user fonts.
 .PP
@@ -204,7 +213,21 @@ ttf_cache_t * ttfCacheCreate (
 .fi
 .PP
 This function creates a cache of system and user fonts, loading any
-previously cached results for the named application.
+previously cached results for the named application "appname".
+.PP
+The "err_cb" and "err_cbdata" arguments specify a callback function and data
+pointer for receiving error messages.  If \fBNULL\fR, errors are sent to the
+\fBstderr\fR file.  The callback function receives the data pointer and a text
+message string, for example:
+.PP
+.nf
+    void my_err_cb(void *err_cbdata, const char *message)
+    {
+      fprintf(stderr, "ERROR: %s\\n", message);
+    }
+
+.fi
+
 .SS ttfCacheDelete
 Delete a cache.
 .PP
@@ -213,6 +236,8 @@ void ttfCacheDelete (
     ttf_cache_t *cache
 );
 .fi
+.PP
+This function deletes a cache, freeing any loaded fonts.
 .SS ttfCacheFind
 Find a font in the cache.
 .PP
@@ -225,6 +250,9 @@ ttf_t * ttfCacheFind (
     ttf_stretch_t stretch
 );
 .fi
+.PP
+This function finds a font in the cache.  The returned \fBttf_t\fR object is
+managed by the cache and should not be deleted.
 .SS ttfCacheGetFamily
 Get the font family at index N.
 .PP
@@ -235,7 +263,7 @@ const char * ttfCacheGetFamily (
 );
 .fi
 .SS ttfCacheGetFilename
-Get the font filename  at index N.
+Get the font filename at index N.
 .PP
 .nf
 const char * ttfCacheGetFilename (
@@ -252,6 +280,9 @@ ttf_t * ttfCacheGetFont (
     size_t n
 );
 .fi
+.PP
+This function gets a font from the cache.  The returned \fBttf_t\fR object is
+managed by the cache and should not be deleted.
 .SS ttfCacheGetIndex
 Get the font index for the composite font at index N.
 .PP
@@ -325,7 +356,7 @@ message string, for example:
 .nf
     void my_err_cb(void *err_cbdata, const char *message)
     {
-      fprintf(stderr, "ERROR: %sn", message);
+      fprintf(stderr, "ERROR: %s\\n", message);
     }
 
 .fi
@@ -348,7 +379,7 @@ argument specifies a pointer to the first byte of data and the "datasize"
 argument specifies the length of the memory buffer in bytes.
 .PP
 .IP 5
-Note: The caller is responsible for ensuring that the memory buffer is
+\fBNote:\fR The caller is responsible for ensuring that the memory buffer is
 .IP 5
 available until the font object is deleted with \fIttfDelete\fR.
 .PP
@@ -366,7 +397,7 @@ message string, for example:
 .nf
     void my_err_cb(void *err_cbdata, const char *message)
     {
-      fprintf(stderr, "ERROR: %sn", message);
+      fprintf(stderr, "ERROR: %s\\n", message);
     }
 
 .fi

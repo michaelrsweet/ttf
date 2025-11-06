@@ -253,7 +253,7 @@ static unsigned	seek_table(ttf_t *font, unsigned tag, unsigned offset, bool requ
 // ```
 // void my_err_cb(void *err_cbdata, const char *message)
 // {
-//   fprintf(stderr, "ERROR: %s\n", message);
+//   fprintf(stderr, "ERROR: %s\\n", message);
 // }
 // ```
 //
@@ -285,7 +285,7 @@ ttfCreate(const char   *filename,	// I - Filename
 // argument specifies a pointer to the first byte of data and the "datasize"
 // argument specifies the length of the memory buffer in bytes.
 //
-// > Note: The caller is responsible for ensuring that the memory buffer is
+// > **Note:** The caller is responsible for ensuring that the memory buffer is
 // > available until the font object is deleted with @link ttfDelete@.
 //
 // The "idx" argument specifies the font to load from a collection - the first
@@ -301,7 +301,7 @@ ttfCreate(const char   *filename,	// I - Filename
 // ```
 // void my_err_cb(void *err_cbdata, const char *message)
 // {
-//   fprintf(stderr, "ERROR: %s\n", message);
+//   fprintf(stderr, "ERROR: %s\\n", message);
 // }
 // ```
 //

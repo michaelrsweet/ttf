@@ -71,6 +71,12 @@ static void	ttf_sort_fonts(ttf_cache_t *cache);
 //
 // 'ttfCacheAdd()' - Add a font to the cache.
 //
+// This function adds the specified font to the cache.
+//
+// > **Note**: Once added, the cache takes over management of the font.  Do not
+// > call @link ttfDelete@ with the font pointer.  Instead, the font will be
+// > freed when you call @link ttfCacheDelete@ to free the cache.
+//
 
 void
 ttfCacheAdd(ttf_cache_t *cache,		// I - Font cache
@@ -113,7 +119,19 @@ ttfCacheAdd(ttf_cache_t *cache,		// I - Font cache
 // 'ttfCacheCreate()' - Create a cache of system and user fonts.
 //
 // This function creates a cache of system and user fonts, loading any
-// previously cached results for the named application.
+// previously cached results for the named application "appname".
+//
+// The "err_cb" and "err_cbdata" arguments specify a callback function and data
+// pointer for receiving error messages.  If `NULL`, errors are sent to the
+// `stderr` file.  The callback function receives the data pointer and a text
+// message string, for example:
+//
+// ```
+// void my_err_cb(void *err_cbdata, const char *message)
+// {
+//   fprintf(stderr, "ERROR: %s\\n", message);
+// }
+// ```
 //
 
 ttf_cache_t *				// O - Font cache
@@ -246,6 +264,8 @@ ttfCacheCreate(const char   *appname,	// I - Application name
 //
 // 'ttfCacheDelete()' - Delete a cache.
 //
+// This function deletes a cache, freeing any loaded fonts.
+//
 
 void
 ttfCacheDelete(ttf_cache_t *cache)		// I - Font cache
@@ -270,6 +290,9 @@ ttfCacheDelete(ttf_cache_t *cache)		// I - Font cache
 
 //
 // 'ttfCacheFind()' - Find a font in the cache.
+//
+// This function finds a font in the cache.  The returned `ttf_t` object is
+// managed by the cache and should not be deleted.
 //
 
 ttf_t *					// O - Font or `NULL` if no matching font found
@@ -352,7 +375,7 @@ ttfCacheFind(ttf_cache_t   *cache,	// I - Font cache
 
 
 //
-// 'ttfCacheGetFilename()' - Get the font filename  at index N.
+// 'ttfCacheGetFilename()' - Get the font filename at index N.
 //
 
 const char *				// O - Font filename/URL or `NULL` if none
@@ -377,6 +400,9 @@ ttfCacheGetFamily(ttf_cache_t *cache,	// I - Font cache
 
 //
 // 'ttfCacheGetFont()' - Get the font at index N
+//
+// This function gets a font from the cache.  The returned `ttf_t` object is
+// managed by the cache and should not be deleted.
 //
 
 ttf_t *					// O - Font

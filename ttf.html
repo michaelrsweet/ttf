@@ -403,6 +403,13 @@ size_t i, num_fonts = ttfCacheGetNumFonts(cache);
 <tr><th>filename</th>
 <td class="description">Filename/URL or <code>NULL</code> for in-memory</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function adds the specified font to the cache.<br>
+<br>
+</p><blockquote>
+<strong>Note</strong>: Once added, the cache takes over management of the font.  Do not
+call <a href="#ttfDelete"><code>ttfDelete</code></a> with the font pointer.  Instead, the font will be
+freed when you call <a href="#ttfCacheDelete"><code>ttfCacheDelete</code></a> to free the cache.</blockquote>
 <h3 class="function"><a id="ttfCacheCreate">ttfCacheCreate</a></h3>
 <p class="description">Create a cache of system and user fonts.</p>
 <p class="code">
@@ -420,7 +427,20 @@ size_t i, num_fonts = ttfCacheGetNumFonts(cache);
 <p class="description">Font cache</p>
 <h4 class="discussion">Discussion</h4>
 <p class="discussion">This function creates a cache of system and user fonts, loading any
-previously cached results for the named application.</p>
+previously cached results for the named application &quot;appname&quot;.<br>
+<br>
+The &quot;err_cb&quot; and &quot;err_cbdata&quot; arguments specify a callback function and data
+pointer for receiving error messages.  If <code>NULL</code>, errors are sent to the
+<code>stderr</code> file.  The callback function receives the data pointer and a text
+message string, for example:
+
+<pre>
+void my_err_cb(void *err_cbdata, const char *message)
+{
+  fprintf(stderr, &quot;ERROR: %s\n&quot;, message);
+}
+</pre>
+</p>
 <h3 class="function"><a id="ttfCacheDelete">ttfCacheDelete</a></h3>
 <p class="description">Delete a cache.</p>
 <p class="code">
@@ -430,6 +450,8 @@ previously cached results for the named application.</p>
 <tr><th>cache</th>
 <td class="description">Font cache</td></tr>
 </tbody></table>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function deletes a cache, freeing any loaded fonts.</p>
 <h3 class="function"><a id="ttfCacheFind">ttfCacheFind</a></h3>
 <p class="description">Find a font in the cache.</p>
 <p class="code">
@@ -449,6 +471,9 @@ previously cached results for the named application.</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Font or <code>NULL</code> if no matching font found</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function finds a font in the cache.  The returned <code>ttf_t</code> object is
+managed by the cache and should not be deleted.</p>
 <h3 class="function"><a id="ttfCacheGetFamily">ttfCacheGetFamily</a></h3>
 <p class="description">Get the font family at index N.</p>
 <p class="code">
@@ -463,7 +488,7 @@ previously cached results for the named application.</p>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Font family name or <code>NULL</code></p>
 <h3 class="function"><a id="ttfCacheGetFilename">ttfCacheGetFilename</a></h3>
-<p class="description">Get the font filename  at index N.</p>
+<p class="description">Get the font filename at index N.</p>
 <p class="code">
 <span class="reserved">const</span> <span class="reserved">char</span> *ttfCacheGetFilename(<a href="#ttf_cache_t">ttf_cache_t</a> *cache, size_t n);</p>
 <h4 class="parameters">Parameters</h4>
@@ -488,6 +513,9 @@ previously cached results for the named application.</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Font</p>
+<h4 class="discussion">Discussion</h4>
+<p class="discussion">This function gets a font from the cache.  The returned <code>ttf_t</code> object is
+managed by the cache and should not be deleted.</p>
 <h3 class="function"><a id="ttfCacheGetIndex">ttfCacheGetIndex</a></h3>
 <p class="description">Get the font index for the composite font at index N.</p>
 <p class="code">
@@ -586,7 +614,7 @@ message string, for example:
 <pre>
 void my_err_cb(void *err_cbdata, const char *message)
 {
-  fprintf(stderr, &quot;ERROR: %sn&quot;, message);
+  fprintf(stderr, &quot;ERROR: %s\n&quot;, message);
 }
 </pre>
 </p>
@@ -615,7 +643,7 @@ argument specifies a pointer to the first byte of data and the &quot;datasize&qu
 argument specifies the length of the memory buffer in bytes.<br>
 <br>
 </p><blockquote>
-Note: The caller is responsible for ensuring that the memory buffer is
+<strong>Note:</strong> The caller is responsible for ensuring that the memory buffer is
 available until the font object is deleted with <a href="#ttfDelete"><code>ttfDelete</code></a>.</blockquote><br>
 <br>
 The &quot;idx&quot; argument specifies the font to load from a collection - the first
@@ -631,7 +659,7 @@ message string, for example:
 <pre>
 void my_err_cb(void *err_cbdata, const char *message)
 {
-  fprintf(stderr, &quot;ERROR: %sn&quot;, message);
+  fprintf(stderr, &quot;ERROR: %s\n&quot;, message);
 }
 </pre>
 </p>
