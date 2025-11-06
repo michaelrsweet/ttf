@@ -12,14 +12,17 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
-    - name: update build environment
+    - name: Checkout TTF sources
+      uses: actions/checkout@v4
+    - name: Update Build Environment
       run: sudo apt-get update --fix-missing -y
-    - name: install prerequisites
+    - name: Install Prerequisites
       run: sudo apt-get install -y cppcheck zlib1g-dev
-    - name: make
-      run: make "COMMONFLAGS=-g -fsanitize=address"
-    - name: test
+    - name: Configure TTF
+      run: ./configure --enable-debug --enable-sanitizer --enable-maintainer
+    - name: Build TTF
+      run: make
+    - name: Test TTF
       env:
         ASAN_OPTIONS: leak_check_at_exit=false
       run: make test
@@ -33,10 +36,13 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: make
-      run: make "COMMONFLAGS=-g -fsanitize=address"
-    - name: test
+    - name: Checkout TTF sources
+      uses: actions/checkout@v4
+    - name: Configure TTF
+      run: ./configure --enable-debug --enable-sanitizer --enable-maintainer
+    - name: Build TTF
+      run: make
+    - name: Test TTF
       run: make test
     - name: clang static analyzer
       run: make CC=clang "GHA_ERROR=::error::" clang
