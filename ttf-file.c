@@ -528,7 +528,7 @@ ttfGetExtents(
     }
 
     // Find its width...
-    if ((widths = font->widths[ch / 256]) != NULL)
+    if (ch < TTF_FONT_MAX_CHAR && (widths = font->widths[ch / 256]) != NULL)
     {
       if (first)
       {
