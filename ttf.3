@@ -1,4 +1,4 @@
-.TH ttf 3 "ttf - functions" "2025-11-05" "ttf - functions"
+.TH ttf 3 "ttf - functions" "2025-12-05" "ttf - functions"
 .SH NAME
 ttf \- ttf - functions
 .SH Introduction
@@ -325,6 +325,24 @@ Get the font weight at index N.
 ttf_weight_t  ttfCacheGetWeight (
     ttf_cache_t *cache,
     size_t n
+);
+.fi
+.SS ttfContainsChar
+Test for the presence of a Unicode character in a font.
+.PP
+.nf
+bool  ttfContainsChar (
+    ttf_t *font,
+    int ch
+);
+.fi
+.SS ttfContainsChars
+Test for the presence of all characters in a UTF-8 (Unicode) string in a font.
+.PP
+.nf
+bool  ttfContainsChars (
+    ttf_t *font,
+    const char *s
 );
 .fi
 .SS ttfCreate

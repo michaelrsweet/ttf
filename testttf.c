@@ -279,6 +279,15 @@ test_font(const char *filename)		// I - Font filename
   else
     return (1);
 
+  testBegin("ttfContainsChar(' ')");
+  testEnd(ttfContainsChar(font, ' '));
+
+  testBegin("ttfContainsChar('\n')");
+  testEnd(!ttfContainsChar(font, '\n'));
+
+  testBegin("ttfContainsChars(\"Hello, World!\")");
+  testEnd(ttfContainsChars(font, "Hello, World!"));
+
   testBegin("ttfGetAscent");
   if ((intvalue = ttfGetAscent(font)) > 0)
   {

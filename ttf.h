@@ -92,6 +92,8 @@ extern ttf_style_t      ttfCacheGetStyle(ttf_cache_t *cache, size_t n);
 extern ttf_weight_t     ttfCacheGetWeight(ttf_cache_t *cache, size_t n);
 extern ttf_t            *ttfCacheGetFont(ttf_cache_t *cache, size_t n);
 extern size_t           ttfCacheGetNumFonts(ttf_cache_t *cache);
+extern bool		ttfContainsChar(ttf_t *font, int ch);
+extern bool		ttfContainsChars(ttf_t *font, const char *s);
 extern ttf_t		*ttfCreate(const char *filename, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 extern ttf_t		*ttfCreateData(const void *data, size_t data_size, size_t idx, ttf_err_cb_t err_cb, void *err_data);
 

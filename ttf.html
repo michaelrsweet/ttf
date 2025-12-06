@@ -294,6 +294,8 @@ span.string {
 <li><a href="#ttfCacheGetStretch">ttfCacheGetStretch</a></li>
 <li><a href="#ttfCacheGetStyle">ttfCacheGetStyle</a></li>
 <li><a href="#ttfCacheGetWeight">ttfCacheGetWeight</a></li>
+<li><a href="#ttfContainsChar">ttfContainsChar</a></li>
+<li><a href="#ttfContainsChars">ttfContainsChars</a></li>
 <li><a href="#ttfCreate">ttfCreate</a></li>
 <li><a href="#ttfCreateData">ttfCreateData</a></li>
 <li><a href="#ttfDelete">ttfDelete</a></li>
@@ -579,6 +581,32 @@ size_t ttfCacheGetNumFonts(<a href="#ttf_cache_t">ttf_cache_t</a> *cache);</p>
 </tbody></table>
 <h4 class="returnvalue">Return Value</h4>
 <p class="description">Font weight or <code>TTF_WEIGHT_UNSPEC</code></p>
+<h3 class="function"><a id="ttfContainsChar">ttfContainsChar</a></h3>
+<p class="description">Test for the presence of a Unicode character in a font.</p>
+<p class="code">
+<span class="reserved">bool</span> ttfContainsChar(<a href="#ttf_t">ttf_t</a> *font, <span class="reserved">int</span> ch);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>ch</th>
+<td class="description">Unicode character</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description"><code>true</code> if font contains the character, <code>false</code> otherwise</p>
+<h3 class="function"><a id="ttfContainsChars">ttfContainsChars</a></h3>
+<p class="description">Test for the presence of all characters in a UTF-8 (Unicode) string in a font.</p>
+<p class="code">
+<span class="reserved">bool</span> ttfContainsChars(<a href="#ttf_t">ttf_t</a> *font, <span class="reserved">const</span> <span class="reserved">char</span> *s);</p>
+<h4 class="parameters">Parameters</h4>
+<table class="list"><tbody>
+<tr><th>font</th>
+<td class="description">Font</td></tr>
+<tr><th>s</th>
+<td class="description">UTF-8 string</td></tr>
+</tbody></table>
+<h4 class="returnvalue">Return Value</h4>
+<p class="description"><code>true</code> if font contains the characters in the string, <code>false</code> otherwise</p>
 <h3 class="function"><a id="ttfCreate">ttfCreate</a></h3>
 <p class="description">Create a new font object for the named font file.</p>
 <p class="code">

@@ -218,6 +218,7 @@ static size_t	fd_read_cb(ttf_t *font, void *buffer, size_t bytes);
 static bool	fd_seek_cb(ttf_t *font, size_t offset);
 static size_t	mem_read_cb(ttf_t *font, void *buffer, size_t bytes);
 static bool	mem_seek_cb(ttf_t *font, size_t offset);
+static int	next_unicode(ttf_t *font, const char **s);
 static bool	read_cmap(ttf_t *font);
 static bool	read_head(ttf_t *font, _ttf_off_head_t *head);
 static bool	read_hhea(ttf_t *font, _ttf_off_hhea_t *hhea);
@@ -231,6 +232,43 @@ static bool	read_table(ttf_t *font);
 static unsigned	read_ulong(ttf_t *font);
 static int	read_ushort(ttf_t *font);
 static unsigned	seek_table(ttf_t *font, unsigned tag, unsigned offset, bool required);
+
+
+//
+// 'ttfContainsChar()' - Test for the presence of a Unicode character in a font.
+//
+
+bool					// O - `true` if font contains the character, `false` otherwise
+ttfContainsChar(ttf_t *font,		// I - Font
+                int   ch)		// I - Unicode character
+{
+  return (font && ch >= 0 && ch < font->num_cmap && font->cmap[ch] > 0);
+}
+
+
+//
+// 'ttfContainsChars()' - Test for the presence of all characters in a UTF-8 (Unicode) string in a font.
+//
+
+bool					// O - `true` if font contains the characters in the string, `false` otherwise
+ttfContainsChars(ttf_t      *font,	// I - Font
+                 const char *s)		// I - UTF-8 string
+{
+  int	ch;				// Current unicode character
+
+
+  // Range check input...
+  if (!font || !s)
+    return (false);
+
+  while ((ch = next_unicode(font, &s)) != 0)
+  {
+    if (!ttfContainsChar(font, ch))
+      return (false);
+  }
+
+  return (true);
+}
 
 
 //
@@ -494,39 +532,8 @@ ttfGetExtents(
     return (NULL);
 
   // Loop through the string...
-  while (*s)
+  while ((ch = next_unicode(font, &s)) != 0)
   {
-    // Get the next Unicode character...
-    if ((*s & 0xe0) == 0xc0 && (s[1] & 0xc0) == 0x80)
-    {
-      // Two byte UTF-8
-      ch = ((*s & 0x1f) << 6) | (s[1] & 0x3f);
-      s += 2;
-    }
-    else if ((*s & 0xf0) == 0xe0 && (s[1] & 0xc0) == 0x80 && (s[2] & 0xc0) == 0x80)
-    {
-      // Three byte UTF-8
-      ch = ((*s & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f);
-      s += 3;
-    }
-    else if ((*s & 0xf8) == 0xf0 && (s[1] & 0xc0) == 0x80 && (s[2] & 0xc0) == 0x80 && (s[3] & 0xc0) == 0x80)
-    {
-      // Four byte UTF-8
-      ch = ((*s & 0x07) << 18) | ((s[1] & 0x3f) << 12) | ((s[2] & 0x3f) << 6) | (s[3] & 0x3f);
-      s += 4;
-    }
-    else if (*s & 0x80)
-    {
-      // Invalid UTF-8
-      errorf(font, "Invalid UTF-8 sequence starting with 0x%02X.", *s & 255);
-      return (NULL);
-    }
-    else
-    {
-      // ASCII...
-      ch = *s++;
-    }
-
     // Find its width...
     if (ch < TTF_FONT_MAX_CHAR && (widths = font->widths[ch / 256]) != NULL)
     {
@@ -1173,6 +1180,57 @@ mem_seek_cb(ttf_t  *font,		// I - Font
   font->data_offset = offset;
 
   return (true);
+}
+
+
+//
+// 'next_unicode()' - Get the next Unicode character.
+//
+
+static int				// O  - Unicode character or `0` on end of string
+next_unicode(ttf_t      *font,		// I  - Font
+             const char **s)		// IO - Character pointer
+{
+  int		ch;			// Unicode character
+  const char	*temp = *s;		// Pointer
+
+
+  if ((temp[0] & 0xe0) == 0xc0 && (temp[1] & 0xc0) == 0x80)
+  {
+    // Two byte UTF-8
+    ch = ((temp[0] & 0x1f) << 6) | (temp[1] & 0x3f);
+    temp += 2;
+  }
+  else if ((temp[0] & 0xf0) == 0xe0 && (temp[1] & 0xc0) == 0x80 && (temp[2] & 0xc0) == 0x80)
+  {
+    // Three byte UTF-8
+    ch = ((temp[0] & 0x0f) << 12) | ((temp[1] & 0x3f) << 6) | (temp[2] & 0x3f);
+    temp += 3;
+  }
+  else if ((temp[0] & 0xf8) == 0xf0 && (temp[1] & 0xc0) == 0x80 && (temp[2] & 0xc0) == 0x80 && (temp[3] & 0xc0) == 0x80)
+  {
+    // Four byte UTF-8
+    ch = ((temp[0] & 0x07) << 18) | ((temp[1] & 0x3f) << 12) | ((temp[2] & 0x3f) << 6) | (temp[3] & 0x3f);
+    temp += 4;
+  }
+  else if (temp[0] & 0x80)
+  {
+    // Invalid UTF-8
+    errorf(font, "Invalid UTF-8 sequence starting with 0x%02X.", temp[0] & 255);
+
+    ch = 0;
+    temp ++;
+  }
+  else
+  {
+    // ASCII...
+    if ((ch = temp[0]) != 0)
+      temp ++;
+  }
+
+  *s = temp;
+
+  return (ch);
 }
 
 
