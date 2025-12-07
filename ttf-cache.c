@@ -638,8 +638,7 @@ ttf_load_cache(ttf_cache_t *cache)	// I - Font cache
   _ttf_cfont_t	*font;			// Current cached font
   char		line[1024],		// Header/attributes line
 		*lineptr;		// Pointer into line
-  long		version,		// Cache version number
-		num_fonts,		// Number of fonts in cache
+  long		num_fonts,		// Number of fonts in cache
 		idx,			// Font index in a file
 		stretch,		// Font stretch
 		style,			// Font style
@@ -664,7 +663,7 @@ ttf_load_cache(ttf_cache_t *cache)	// I - Font cache
   if (strncmp(line, TTF_CACHE_HEADER, TTF_CACHE_HEADERLEN))
     goto error;
 
-  if ((version = strtol(line + TTF_CACHE_HEADERLEN, &lineptr, 10)) != TTF_CACHE_VERSION || !lineptr || !isspace(*lineptr & 255))
+  if (strtol(line + TTF_CACHE_HEADERLEN, &lineptr, 10) != TTF_CACHE_VERSION || !lineptr || !isspace(*lineptr & 255))
     goto error;
 
   if ((num_fonts = strtol(lineptr, &lineptr, 10)) < 1 || num_fonts > TTF_CACHE_MAX || !lineptr || *lineptr)
