@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout TTF sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Update Build Environment
         run: sudo apt-get update --fix-missing -y
       - name: Install Prerequisites

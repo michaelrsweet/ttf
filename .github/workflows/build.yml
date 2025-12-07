@@ -9,11 +9,11 @@ on:
 jobs:
   build-linux:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout TTF sources
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Update Build Environment
       run: sudo apt-get update --fix-missing -y
     - name: Install Prerequisites
@@ -37,7 +37,7 @@ jobs:
 
     steps:
     - name: Checkout TTF sources
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Configure TTF
       run: ./configure --enable-debug --enable-sanitizer --enable-maintainer
     - name: Build TTF
