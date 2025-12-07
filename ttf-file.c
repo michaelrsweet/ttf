@@ -860,7 +860,7 @@ copy_name(ttf_t    *font,		// I - Font
 //
 
 static ttf_t *
-create_font(const char   *filename,	// I - Filename of `NULL`
+create_font(const char   *filename,	// I - Filename or `NULL`
             const void   *data,		// I - Data pointer or `NULL`
             size_t       datasize,	// I - Size of data or 0
             size_t       idx,		// I - Font index
@@ -877,7 +877,7 @@ create_font(const char   *filename,	// I - Filename of `NULL`
   _ttf_metric_t		defWidth;	// Default glyph width
 
 
-  TTF_DEBUG("create_font(filename=\"%s\", data=%p, datasize=%lu, idx=%u, err_cb=%p, err_cbdata=%p)\n", filename, data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_cbdata);
+  TTF_DEBUG("create_font(filename=\"%s\", data=%p, datasize=%lu, idx=%u, err_cb=%p, err_cbdata=%p)\n", filename ? filename : "(null)", data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_cbdata);
 
   // Allocate memory...
   if ((font = (ttf_t *)calloc(1, sizeof(ttf_t))) == NULL)

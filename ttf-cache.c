@@ -49,7 +49,7 @@ struct _ttf_cache_s			// Font cache
 		alloc_fonts;		// Allocated cached fonts
   _ttf_cfont_t	*fonts;			// Cached fonts
   size_t	font_index[256];	// Index for fonts
-  const char	*current_name;		// Current font filename
+  char		current_name[1024];	// Current font filename
   size_t	current_index;		// Current font index
 };
 
@@ -550,7 +550,7 @@ ttf_cache_err_cb(ttf_cache_t *cache,	// I - Font cache
   char	xmessage[2048];			// Extended message
 
 
-  if (cache->current_name)
+  if (cache->current_name[0])
   {
     if (cache->current_index)
       snprintf(xmessage, sizeof(xmessage), "%s(%u): %s", cache->current_name, (unsigned)cache->current_index, message);
@@ -854,7 +854,7 @@ ttf_load_fonts(ttf_cache_t *cache,	// I - Font cache
     if (strcmp(ext, ".otc") && strcmp(ext, ".otf") && strcmp(ext, ".ttc") && strcmp(ext, ".ttf"))
       continue;
 
-    cache->current_name  = filename;
+    strncpy(cache->current_name, filename, sizeof(cache->current_name) - 1);
     cache->current_index = 0;
 
     if ((font = ttfCreate(filename, /*idx*/0, (ttf_err_cb_t)ttf_cache_err_cb, cache)) != NULL)
