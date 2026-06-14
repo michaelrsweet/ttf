@@ -4,6 +4,8 @@ Changes in TTF
 v1.1.1 - YYYY-MM-DD
 -------------------
 
+- Added tests for `ttfGetCMap`.
+- Fixed support for extended planes in Unicode text.
 - Fixed some clang-reported issues.
 - Fixed builds on Windows.
 

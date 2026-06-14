@@ -3,7 +3,7 @@
 //
 // https://www.msweet.org/ttf
 //
-// Copyright © 2018-2025 by Michael R Sweet.
+// Copyright © 2018-2026 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -38,7 +38,9 @@
 #define TTF_OFF_post	0x706f7374	// PostScript information
 
 #define TTF_OFF_Unicode		0	// Unicode platform ID
+#define TTF_OFF_Unicode_Full_20	4	// Unicode 2.0 full repertoire
 #define TTF_OFF_Unicode_Variants 5	// Unicode with variation sequences
+#define TTF_OFF_Unicode_Full	6	// Unicode (any version) full repertoire
 #define TTF_OFF_Mac		1	// Macintosh platform ID
 #define TTF_OFF_Mac_Roman	0	// Macintosh Roman encoding ID
 #define TTF_OFF_Mac_USEnglish	0	// Macintosh US English language ID
@@ -1415,7 +1417,8 @@ read_cmap(ttf_t *font)			// I - Font
   unsigned	clength,		// Length of cmap data
 		coffset = 0,		// Offset to cmap data
 		roman_offset = 0,	// MacRoman offset
-		symbol_offset = 0;	// Symbol offset
+		symbol_offset = 0,	// Symbol offset
+		unicode_offset = 0;	// Unicode offset
   int		*cmapptr;		// Pointer into cmap
 #if 0
   const int	*unimap = NULL;		// Unicode character map, if any
@@ -1484,10 +1487,23 @@ read_cmap(ttf_t *font)			// I - Font
 
     TTF_DEBUG("read_cmap: table[%d].platform_id=%d, encoding_id=%d, coffset=%u\n", i, platform_id, encoding_id, coffset);
 
-    if ((platform_id == TTF_OFF_Unicode && encoding_id != TTF_OFF_Unicode_Variants) || (platform_id == TTF_OFF_Windows && (encoding_id == TTF_OFF_Windows_UCS2 || encoding_id == TTF_OFF_Windows_UCS4)))
-      break;
+    if (platform_id == TTF_OFF_Unicode && encoding_id != TTF_OFF_Unicode_Variants)
+    {
+      if (encoding_id == TTF_OFF_Unicode_Full || encoding_id == TTF_OFF_Unicode_Full_20)
+        break;
 
-    if (platform_id == TTF_OFF_Mac && encoding_id == TTF_OFF_Mac_Roman)
+      if (unicode_offset == 0)
+        unicode_offset = coffset;
+    }
+    else if (platform_id == TTF_OFF_Windows && (encoding_id == TTF_OFF_Windows_UCS2 || encoding_id == TTF_OFF_Windows_UCS4))
+    {
+      if (encoding_id == TTF_OFF_Windows_UCS4)
+        break;
+
+      if (unicode_offset == 0)
+        unicode_offset = coffset;
+    }
+    else if (platform_id == TTF_OFF_Mac && encoding_id == TTF_OFF_Mac_Roman)
       roman_offset = coffset;
     else if (platform_id == TTF_OFF_Windows && encoding_id == TTF_OFF_Windows_Symbol)
       symbol_offset = coffset;
@@ -1495,7 +1511,12 @@ read_cmap(ttf_t *font)			// I - Font
 
   if (i >= num_tables)
   {
-    if (symbol_offset)
+    if (unicode_offset)
+    {
+      TTF_DEBUG("read_cmap: Using Unicode/Windows BMP cmap table.\n");
+      coffset = unicode_offset;
+    }
+    else if (symbol_offset)
     {
       TTF_DEBUG("read_cmap: Using Windows Symbol cmap table.\n");
       coffset = symbol_offset;

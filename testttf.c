@@ -3,7 +3,7 @@
 //
 // https://www.msweet.org/ttf
 //
-// Copyright © 2018-2025 by Michael R Sweet.
+// Copyright © 2018-2026 by Michael R Sweet.
 //
 // Licensed under Apache License v2.0.  See the file "LICENSE" for more
 // information.
@@ -298,6 +298,8 @@ test_font(const char *filename,		// I - Font filename or `NULL`
   size_t	num_fonts;		// Number of fonts
   ttf_style_t	style;			// Font style
   ttf_weight_t	weight;			// Font weight
+  const int	*cmap;			// CMap table
+  size_t	num_cmap;		// Number of CMap entries
   static const char * const stretches[] =
   {					// Font stretch strings
     "TTF_STRETCH_NORMAL",		// normal
@@ -376,6 +378,17 @@ test_font(const char *filename,		// I - Font filename or `NULL`
   else
   {
     testEndMessage(false, "%d", intvalue);
+    errors ++;
+  }
+
+  testBegin("ttfGetCMap");
+  if ((cmap = ttfGetCMap(font, &num_cmap)) != NULL && num_cmap > 0)
+  {
+    testEndMessage(true, "%lu entries", (unsigned long)num_cmap);
+  }
+  else
+  {
+    testEndMessage(false, "%lu entries", (unsigned long)num_cmap);
     errors ++;
   }
 
