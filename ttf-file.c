@@ -833,7 +833,7 @@ ttfGetWidth(ttf_t *font,		// I - Font
 
 
   // Range check input...
-  if (!font || ch < ' ' || ch == 0x7f)
+  if (!font || ch < ' ' || ch == 0x7f || ch >= TTF_FONT_MAX_CHAR)
     return (0);
 
   if (font->widths[bin])
