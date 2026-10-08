@@ -669,7 +669,7 @@ ttf_add_font(ttf_cache_t *cache,	// I - Font cache
 
   cfont->font     = delete_it ? NULL : font;
   cfont->filename = filename ? strdup(filename) : NULL;
-  cfont->idx      = idx;
+  cfont->idx      = (unsigned)idx;
   cfont->stretch  = ttfGetStretch(font);
   cfont->style    = ttfGetStyle(font);
   cfont->weight       = ttfGetWeight(font);
@@ -864,7 +864,7 @@ ttf_load_cache(ttf_cache_t *cache)	// I - Font cache
       goto error;
     }
 
-    font->idx = (size_t)idx;
+    font->idx = (unsigned)idx;
     cache->num_fonts ++;
 
     // Get font attributes (stretch, style, weight, and family name)...
