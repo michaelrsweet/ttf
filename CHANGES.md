@@ -12,6 +12,7 @@ v1.2.0 - YYYY-MM-DD
 - Added tests for `ttfGetCMap`.
 - Added missing implementation of `ttfGetFilename`.
 - Updated the range limit check in `ttfGetWidth`.
+- Fixed error handling for bad font unitsPerEm value (Issue #16)
 - Fixed support for extended planes in Unicode text.
 - Fixed some clang-reported issues.
 - Fixed builds on Windows.

@@ -1137,6 +1137,9 @@ create_font(const char   *filename,	// I - Filename or `NULL`
   if (!read_head(font, &head))
     goto error;
 
+  if (head.unitsPerEm == 0)
+    goto error;
+
   font->units = (float)head.unitsPerEm;
   font->x_max = head.xMax;
   font->x_min = head.xMin;
