@@ -1064,6 +1064,7 @@ create_font(const char   *filename,	// I - Filename or `NULL`
   _ttf_off_os_2_t	os_2;		// OS/2 table
   _ttf_off_post_t	post;		// PostScript table
   _ttf_metric_t		defWidth;	// Default glyph width
+  unsigned		fcUpper;	// Class portion of sFamilyClass
 
 
   TTF_DEBUG("create_font(filename=\"%s\", data=%p, datasize=%lu, idx=%u, err_cb=%p, err_cbdata=%p)\n", filename ? filename : "(null)", data, (unsigned long)datasize, (unsigned)idx, (void *)err_cb, err_cbdata);
@@ -1218,7 +1219,10 @@ create_font(const char   *filename,	// I - Filename or `NULL`
       TTF_CLASS_NONE			// 15 - Miscellaneous
     };
 
-    font->family_class = family_classes[(os_2.sFamilyClass >> 8) & 0xff];
+    if ((fcUpper = (os_2.sFamilyClass >> 8) & 0xff) >= (sizeof(family_classes) / sizeof(family_classes[0])))
+      font->family_class = TTF_CLASS_NONE;
+    else
+      font->family_class = family_classes[fcUpper];
   }
   else
   {
